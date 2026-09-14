@@ -1,6 +1,7 @@
 export * from './conversationUtils';
 export * from './useConversations';
 export * from './useConversation';
+export * from './useCreateConversation';
 export * from './usePinConversation';
 export * from './useArchiveConversation';
 export * from './useMuteConversation';
@@ -9,3 +10,4 @@ export * from './useUnreadTotal';
 export * from './ConversationItem';
 export * from './ConversationList';
 export * from './ConversationActionsMenu';
+export * from './NewChatDialog';

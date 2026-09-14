@@ -11,29 +11,22 @@ import { useUIStore } from '@/stores/ui.store';
 import { Sidebar } from './Sidebar';
 import { MainContent } from './MainContent';
 
-interface Props {
-  onCreateConversation?: () => void;
-}
-
-export function AppLayout({ onCreateConversation }: Props) {
+export function AppLayout() {
   const mobileOpen = useUIStore((s) => s.mobileSidebarOpen);
   const closeMobileSidebar = useUIStore((s) => s.closeMobileSidebar);
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
-      {/* Desktop sidebar */}
       <div className="hidden md:flex">
-        <Sidebar onCreateConversation={onCreateConversation} />
+        <Sidebar />
       </div>
 
-      {/* Mobile drawer */}
       <Sheet open={mobileOpen} onOpenChange={(open) => !open && closeMobileSidebar()}>
         <SheetContent side="left" className="w-[320px] p-0" aria-describedby={undefined}>
-          <Sidebar onCreateConversation={onCreateConversation} />
+          <Sidebar />
         </SheetContent>
       </Sheet>
 
-      {/* Main content */}
       <MainContent>
         <Outlet />
       </MainContent>

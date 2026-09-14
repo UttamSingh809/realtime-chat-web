@@ -4,6 +4,9 @@
  * Desktop: fixed-width column, collapses to icon-only mode.
  * Mobile:  slides in as a drawer.
  */
+/**
+ * Sidebar — the left column of the app shell.
+ */
 
 import { useState } from 'react';
 import { Archive } from 'lucide-react';
@@ -11,18 +14,15 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useUIStore } from '@/stores/ui.store';
-import { ConversationList } from '@/features/conversations';
+import { ConversationList, NewChatDialog } from '@/features/conversations';
 import { SidebarHeader } from './SidebarHeader';
 import { SidebarSearch } from './SidebarSearch';
 import { SidebarFooter } from './SidebarFooter';
 
-interface Props {
-  onCreateConversation?: () => void;
-}
-
-export function Sidebar({ onCreateConversation }: Props) {
+export function Sidebar() {
   const [query, setQuery] = useState('');
   const [showArchived, setShowArchived] = useState(false);
+  const [newChatOpen, setNewChatOpen] = useState(false);
   const collapsed = useUIStore((s) => s.sidebarCollapsed);
 
   return (
@@ -32,7 +32,7 @@ export function Sidebar({ onCreateConversation }: Props) {
         collapsed ? 'w-[68px]' : 'w-[320px]'
       )}
     >
-      <SidebarHeader onCreateConversation={onCreateConversation} />
+      <SidebarHeader onCreateConversation={() => setNewChatOpen(true)} />
 
       {!collapsed && (
         <>
@@ -66,6 +66,8 @@ export function Sidebar({ onCreateConversation }: Props) {
       <ConversationList searchQuery={query} archived={showArchived} />
 
       <SidebarFooter />
+
+      <NewChatDialog open={newChatOpen} onOpenChange={setNewChatOpen} />
     </aside>
   );
 }
