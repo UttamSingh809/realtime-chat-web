@@ -1,14 +1,17 @@
 /**
  * AppProviders — composes every provider in the correct order.
  *
- * Order matters:
- *   ThemeProvider first (styles apply before anything renders)
- *   QueryProvider next (data layer available to everything below)
- *   ToastProvider last (uses theme)
+ * Order:
+ *   1. ThemeProvider        — styles apply before anything renders
+ *   2. QueryProvider        — data layer available below
+ *   3. AuthProvider         — runs silent refresh on mount
+ *   4. children             — the app
+ *   5. ToastProvider        — themes with the current theme
  */
 
 import { ThemeProvider } from './ThemeProvider';
 import { QueryProvider } from './QueryProvider';
+import { AuthProvider } from './AuthProvider';
 import { ToastProvider } from './ToastProvider';
 
 interface Props {
@@ -19,8 +22,10 @@ export function AppProviders({ children }: Props) {
   return (
     <ThemeProvider>
       <QueryProvider>
-        {children}
-        <ToastProvider />
+        <AuthProvider>
+          {children}
+          <ToastProvider />
+        </AuthProvider>
       </QueryProvider>
     </ThemeProvider>
   );
