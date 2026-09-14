@@ -5,8 +5,10 @@
  *   1. ThemeProvider        — styles apply before anything renders
  *   2. QueryProvider        — data layer available below
  *   3. AuthProvider         — runs silent refresh on mount
- *   4. TooltipProvider      — required by every <Tooltip> in the app
- *   5. children + Toaster
+ *   4. SocketProvider       — connects when authenticated
+ *   5. TooltipProvider      — required by every <Tooltip>
+ *   6. SocketBridge         — no-op render; subscribes to events
+ *   7. children + Toaster
  */
 
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -14,6 +16,7 @@ import { ThemeProvider } from './ThemeProvider';
 import { QueryProvider } from './QueryProvider';
 import { AuthProvider } from './AuthProvider';
 import { ToastProvider } from './ToastProvider';
+import { SocketProvider, SocketBridge } from '@/features/socket';
 
 interface Props {
   children: React.ReactNode;
@@ -24,10 +27,13 @@ export function AppProviders({ children }: Props) {
     <ThemeProvider>
       <QueryProvider>
         <AuthProvider>
-          <TooltipProvider delayDuration={300} skipDelayDuration={100}>
-            {children}
-            <ToastProvider />
-          </TooltipProvider>
+          <SocketProvider>
+            <TooltipProvider delayDuration={300} skipDelayDuration={100}>
+              <SocketBridge />
+              {children}
+              <ToastProvider />
+            </TooltipProvider>
+          </SocketProvider>
         </AuthProvider>
       </QueryProvider>
     </ThemeProvider>

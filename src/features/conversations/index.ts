@@ -11,3 +11,4 @@ export * from './ConversationItem';
 export * from './ConversationList';
 export * from './ConversationActionsMenu';
 export * from './NewChatDialog';
+export * from './useConversationRoom';
