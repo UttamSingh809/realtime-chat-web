@@ -15,9 +15,11 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useAuthBoot } from '@/providers';
 import { ProtectedRoute, PublicRoute } from '@/components/routing';
+import { AppLayout } from '@/components/layout';
 import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
-import HomePage from '@/pages/HomePage';
+import ChatEmptyPage from '@/pages/ChatEmptyPage';
+import ChatConversationPage from '@/pages/ChatConversationPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import { Loader2 } from 'lucide-react';
 
@@ -40,21 +42,22 @@ export function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Root redirect */}
         <Route path="/" element={<Navigate to="/app" replace />} />
 
-        {/* Public routes */}
+        {/* Public */}
         <Route element={<PublicRoute />}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
         </Route>
 
-        {/* Protected routes */}
+        {/* Protected — all under /app use AppLayout */}
         <Route element={<ProtectedRoute />}>
-          <Route path="/app" element={<HomePage />} />
+          <Route path="/app" element={<AppLayout />}>
+            <Route index element={<ChatEmptyPage />} />
+            <Route path="chat/:id" element={<ChatConversationPage />} />
+          </Route>
         </Route>
 
-        {/* 404 */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
