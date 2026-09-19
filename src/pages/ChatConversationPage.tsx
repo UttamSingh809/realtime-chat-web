@@ -1,5 +1,5 @@
 /**
- * ChatConversationPage — the real chat view, now with live updates.
+ * ChatConversationPage — the real chat view.
  */
 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
@@ -26,8 +26,7 @@ import {
   useAutoDeliver,
 } from '@/features/messages';
 import { useSocketConnection } from '@/features/socket';
-import type { UserPublic } from '@/types';
-import type { Attachment } from '@/types';
+import type { Attachment, UserPublic } from '@/types';
 
 export default function ChatConversationPage() {
   const { id } = useParams<{ id: string }>();
@@ -35,13 +34,10 @@ export default function ChatConversationPage() {
   const markRead = useMarkRead();
   const { isConnected } = useSocketConnection();
 
-  // Join the socket room (also marks read)
   useConversationRoom(id);
 
-  // Fetch conversation metadata
   const { data: conversation, isLoading: loadingConv, isError: errorConv } = useConversation(id);
 
-  // Fetch message history
   const {
     data: pages,
     isLoading: loadingMessages,
@@ -50,10 +46,9 @@ export default function ChatConversationPage() {
     fetchNextPage,
   } = useMessages({ conversationId: id });
 
-  // Actions
   const { send, edit, remove } = useMessageActions(id);
   const { add: addReaction, remove: removeReaction } = useMessageReactions(id);
-  // Typing
+
   const typing = useTypingEmitter(id);
   useTypingSubscription(id);
 
@@ -66,7 +61,6 @@ export default function ChatConversationPage() {
     return conversationDisplayName(conversation, user.id);
   }, [conversation, user]);
 
-  // Lookup map for typing indicator names
   const userLookup = useMemo(() => {
     const map: Record<string, Pick<UserPublic, 'id' | 'name'> | undefined> = {};
     if (!conversation) return map;
@@ -77,7 +71,6 @@ export default function ChatConversationPage() {
     return map;
   }, [conversation]);
 
-  // Mark read (guarded, fires once per latest message id)
   const lastReadRef = useRef<string | null>(null);
   useEffect(() => {
     if (!conversation || messages.length === 0) return;
@@ -122,12 +115,8 @@ export default function ChatConversationPage() {
   const handleReact = useCallback(
     (messageId: string, emoji: string) => {
       if (!id) return;
-
-      // Determine whether I already have this exact reaction.
-      // If so, remove it (toggle off). Otherwise, add/replace.
       const message = messages.find((m) => m.id === messageId);
       const existing = message?.reactions?.[emoji];
-
       if (existing?.mine) {
         removeReaction.mutate({ messageId, conversationId: id });
       } else {
@@ -165,8 +154,9 @@ export default function ChatConversationPage() {
       : 'Direct message';
 
   return (
-    <div className="flex h-full flex-col">
-      <header className="flex items-center gap-3 border-b px-4 py-3">
+    <div className="flex h-full flex-col overflow-hidden">
+      {/* Header — never shrinks */}
+      <header className="flex shrink-0 items-center gap-3 border-b px-4 py-3">
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-sm font-semibold">{conversationName}</h2>
           <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
@@ -180,38 +170,43 @@ export default function ChatConversationPage() {
         )}
       </header>
 
-      {loadingMessages && messages.length === 0 ? (
-        <MessageList
-          messages={[]}
-          conversation={conversation}
-          isLoading
-          isFetchingNextPage={false}
-          hasNextPage={false}
-          fetchNextPage={() => undefined}
-          onEdit={handleEdit}
-          onDeleteForMe={handleDeleteForMe}
-          onDeleteForEveryone={handleDeleteForEveryone}
-          onReact={handleReact}
-        />
-      ) : messages.length === 0 ? (
-        <MessageEmptyState conversationName={conversationName} />
-      ) : (
-        <MessageList
-          messages={messages}
-          conversation={conversation}
-          isLoading={false}
-          isFetchingNextPage={isFetchingNextPage}
-          hasNextPage={!!hasNextPage}
-          fetchNextPage={fetchNextPage}
-          onEdit={handleEdit}
-          onDeleteForMe={handleDeleteForMe}
-          onDeleteForEveryone={handleDeleteForEveryone}
-          onReact={handleReact}
-        />
-      )}
+      {/* Message area — takes remaining space, scrolls internally */}
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
+        {loadingMessages && messages.length === 0 ? (
+          <MessageList
+            messages={[]}
+            conversation={conversation}
+            isLoading
+            isFetchingNextPage={false}
+            hasNextPage={false}
+            fetchNextPage={() => undefined}
+            onEdit={handleEdit}
+            onDeleteForMe={handleDeleteForMe}
+            onDeleteForEveryone={handleDeleteForEveryone}
+            onReact={handleReact}
+          />
+        ) : messages.length === 0 ? (
+          <MessageEmptyState conversationName={conversationName} />
+        ) : (
+          <MessageList
+            messages={messages}
+            conversation={conversation}
+            isLoading={false}
+            isFetchingNextPage={isFetchingNextPage}
+            hasNextPage={!!hasNextPage}
+            fetchNextPage={fetchNextPage}
+            onEdit={handleEdit}
+            onDeleteForMe={handleDeleteForMe}
+            onDeleteForEveryone={handleDeleteForEveryone}
+            onReact={handleReact}
+          />
+        )}
+      </div>
 
+      {/* Typing indicator — above composer, never shrinks */}
       <TypingIndicator conversationId={id ?? ''} userLookup={userLookup} />
 
+      {/* Composer — never shrinks */}
       <MessageComposer
         conversationName={conversationName}
         onSend={handleSend}

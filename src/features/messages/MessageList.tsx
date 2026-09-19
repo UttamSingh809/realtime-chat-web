@@ -1,18 +1,17 @@
 /**
- * MessageList — the virtualized message list.
- *
- * Uses react-virtuoso in "reverse" mode (newest at bottom, grows upward)
- * with `firstItemIndex` to prepend older messages without scroll jumps.
+ * MessageList — the virtualized message list with robust auto-scroll.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 import { format, isToday, isYesterday } from 'date-fns';
+import { ArrowDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useAuth } from '@/features/auth';
+import type { Conversation, Message } from '@/types';
 import { MessageGroup } from './MessageGroup';
 import { MessageSkeleton } from './MessageSkeleton';
 import { groupMessages, shouldShowDateDivider } from './messageUtils';
-import type { Conversation, Message } from '@/types';
 
 interface Props {
   messages: Message[];
@@ -49,22 +48,21 @@ export function MessageList({
   const { user } = useAuth();
   const virtuosoRef = useRef<VirtuosoHandle>(null);
 
-  // Compute the "first item index" anchor so prepending older messages
-  // doesn't cause the viewport to jump. Virtuoso wants a number that
-  // decreases as we prepend more items above.
+  const isAtBottomRef = useRef(true);
+  const [showJumpButton, setShowJumpButton] = useState(false);
+  const lastScrolledMessageIdRef = useRef<string | null>(null);
+
   const [firstItemIndex, setFirstItemIndex] = useState(1_000_000);
   const lastCount = useRef(0);
 
   useEffect(() => {
     const added = messages.length - lastCount.current;
     if (added > 0 && lastCount.current > 0) {
-      // We added items at the top → decrement the anchor
       setFirstItemIndex((idx) => idx - added);
     }
     lastCount.current = messages.length;
   }, [messages.length]);
 
-  // Build render items: interleave date dividers with grouped messages
   const items = useMemo(() => {
     if (!user) return [];
 
@@ -93,39 +91,83 @@ export function MessageList({
     return out;
   }, [messages, user]);
 
+  const lastMessage = messages[messages.length - 1];
+  const lastMessageId = lastMessage?.id;
+
+  useEffect(() => {
+    if (!lastMessageId || items.length === 0) return;
+    if (lastScrolledMessageIdRef.current === lastMessageId) return;
+
+    const senderId =
+      lastMessage?.sender && 'id' in lastMessage.sender
+        ? (lastMessage.sender as { id: string | null }).id
+        : null;
+
+    const isMine = senderId === user?.id;
+    const shouldScroll = isMine || isAtBottomRef.current;
+
+    if (shouldScroll) {
+      requestAnimationFrame(() => {
+        virtuosoRef.current?.scrollToIndex({
+          index: 'LAST',
+          behavior: 'smooth',
+          align: 'end',
+        });
+      });
+      lastScrolledMessageIdRef.current = lastMessageId;
+      setShowJumpButton(false);
+    } else {
+      setShowJumpButton(true);
+      lastScrolledMessageIdRef.current = lastMessageId;
+    }
+  }, [lastMessageId, lastMessage, user?.id, items.length]);
+
   const handleStartReached = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  const handleAtBottomStateChange = useCallback((atBottom: boolean) => {
+    isAtBottomRef.current = atBottom;
+    if (atBottom) setShowJumpButton(false);
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
+    virtuosoRef.current?.scrollToIndex({
+      index: 'LAST',
+      behavior: 'smooth',
+      align: 'end',
+    });
+    setShowJumpButton(false);
+  }, []);
+
   if (isLoading) {
     return (
-      <div className="flex-1 overflow-hidden">
+      <div className="h-full overflow-y-auto">
         <MessageSkeleton />
       </div>
     );
   }
 
-  if (items.length === 0) {
-    return null; // Caller renders the empty state
-  }
+  if (items.length === 0) return null;
 
   return (
-    <div className="flex-1 overflow-hidden">
+    <div className="relative h-full w-full">
       <Virtuoso
         ref={virtuosoRef}
         data={items}
+        style={{ height: '100%', width: '100%' }}
         firstItemIndex={firstItemIndex}
         initialTopMostItemIndex={items.length - 1}
         startReached={handleStartReached}
-        followOutput="smooth"
-        atBottomThreshold={80}
-        increaseViewportBy={{ top: 400, bottom: 400 }}
+        atBottomStateChange={handleAtBottomStateChange}
+        atBottomThreshold={100}
+        increaseViewportBy={{ top: 400, bottom: 200 }}
         itemContent={(_index, item) => {
           if (item.kind === 'divider') {
             return (
-              <div className="my-4 flex items-center gap-3 px-4">
+              <div className="my-4 flex w-full items-center gap-3 px-4">
                 <div className="h-px flex-1 bg-border" />
                 <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
                   {item.date}
@@ -146,6 +188,22 @@ export function MessageList({
           );
         }}
       />
+
+      {showJumpButton && (
+        <button
+          type="button"
+          onClick={scrollToBottom}
+          className={cn(
+            'absolute bottom-4 left-1/2 z-10 -translate-x-1/2',
+            'flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-lg',
+            'transition-all hover:bg-primary/90'
+          )}
+          aria-label="Jump to newest message"
+        >
+          <ArrowDown className="h-3.5 w-3.5" />
+          New messages
+        </button>
+      )}
     </div>
   );
 }

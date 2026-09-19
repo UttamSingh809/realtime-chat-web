@@ -33,7 +33,7 @@ export function MessageGroup({
   const { isMine, messages, sender } = group;
 
   return (
-    <div className={cn('flex gap-3 px-4 py-1', isMine && 'flex-row-reverse')}>
+    <div className={cn('flex w-full gap-3 px-4 py-1', isMine && 'flex-row-reverse')}>
       {!isMine && (
         <div className="w-8 shrink-0">
           {sender ? (
