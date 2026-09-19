@@ -49,7 +49,7 @@ export interface UpdateRoleInput {
 
 export const conversationsApi = {
   create: (input: CreateConversationInput) =>
-    api.post<ApiSuccess<{ conversation: Conversation }>>('/conversations', input),
+    api.post<ApiSuccess<{ conversation: Conversation; created: boolean }>>('/conversations', input),
 
   list: (params: ListConversationsParams = {}) =>
     api.get<ApiSuccess<CursorResponse<Conversation>>>('/conversations', { params }),
@@ -58,19 +58,12 @@ export const conversationsApi = {
     api.get<ApiSuccess<{ conversation: Conversation }>>(`/conversations/${id}`),
 
   update: (id: string, input: UpdateConversationInput) =>
-    api.put<ApiSuccess<{ conversation: Conversation }>>(
-      `/conversations/${id}`,
-      input
-    ),
+    api.put<ApiSuccess<{ conversation: Conversation }>>(`/conversations/${id}`, input),
 
-  leave: (id: string) =>
-    api.delete<ApiSuccess<{ left: boolean }>>(`/conversations/${id}`),
+  leave: (id: string) => api.delete<ApiSuccess<{ left: boolean }>>(`/conversations/${id}`),
 
   addMember: (id: string, input: AddMemberInput) =>
-    api.post<ApiSuccess<{ conversation: Conversation }>>(
-      `/conversations/${id}/members`,
-      input
-    ),
+    api.post<ApiSuccess<{ conversation: Conversation }>>(`/conversations/${id}/members`, input),
 
   removeMember: (id: string, userId: string) =>
     api.delete<ApiSuccess<{ conversation: Conversation }>>(
@@ -84,22 +77,18 @@ export const conversationsApi = {
     ),
 
   pin: (id: string, pinned: boolean) =>
-    api.put<ApiSuccess<{ conversation: Conversation }>>(
-      `/conversations/${id}/pin`,
-      { pinned }
-    ),
+    api.put<ApiSuccess<{ conversation: Conversation }>>(`/conversations/${id}/pin`, { pinned }),
 
   archive: (id: string, archived: boolean) =>
-    api.put<ApiSuccess<{ conversation: Conversation }>>(
-      `/conversations/${id}/archive`,
-      { archived }
-    ),
+    api.put<ApiSuccess<{ conversation: Conversation }>>(`/conversations/${id}/archive`, {
+      archived,
+    }),
 
   mute: (id: string, muted: boolean, mutedUntil?: string | null) =>
-    api.put<ApiSuccess<{ conversation: Conversation }>>(
-      `/conversations/${id}/mute`,
-      { muted, mutedUntil }
-    ),
+    api.put<ApiSuccess<{ conversation: Conversation }>>(`/conversations/${id}/mute`, {
+      muted,
+      mutedUntil,
+    }),
 
   markRead: (id: string, upToMessageId?: string) =>
     api.post<

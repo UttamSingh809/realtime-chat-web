@@ -9,32 +9,42 @@ import { toast } from 'sonner';
 import { conversationsApi } from '@/api';
 import type { CreateConversationInput } from '@/api/conversations.api';
 import { QUERY_KEYS } from '@/lib/constants';
-import type { ApiError } from '@/types';
+import type { ApiError, Conversation } from '@/types';
+
+interface MutationResult {
+  conversation: Conversation;
+  created: boolean;
+}
 
 export function useCreateConversation() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: CreateConversationInput) => {
+    mutationFn: async (input: CreateConversationInput): Promise<MutationResult> => {
       const res = await conversationsApi.create(input);
-      return res.data.conversation;
+      return {
+        conversation: res.data.conversation,
+        created: res.data.created,
+      };
     },
-    onSuccess: (conversation) => {
+    onSuccess: ({ conversation, created }) => {
       // Refresh the sidebar
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.conversations.all });
       // Seed the detail cache so the next page renders instantly
-      queryClient.setQueryData(
-        QUERY_KEYS.conversations.detail(conversation.id),
-        conversation
-      );
+      queryClient.setQueryData(QUERY_KEYS.conversations.detail(conversation.id), conversation);
       // Navigate to the new conversation
       navigate(`/app/chat/${conversation.id}`);
-      toast.success(
-        conversation.type === 'group'
-          ? `Group "${conversation.group?.name}" created`
-          : 'Conversation started'
-      );
+
+      // Toast policy (matches Slack/Discord/WhatsApp behavior):
+      //   - Groups: always toast "Group created" (a group is always new)
+      //   - New DM: toast "Conversation started"
+      //   - Existing DM: no toast (silent — the user didn't "create" anything)
+      if (conversation.type === 'group') {
+        toast.success(`Group "${conversation.group?.name}" created`);
+      } else if (created) {
+        toast.success('Conversation started');
+      }
     },
     onError: (error) => {
       const apiError = error as unknown as ApiError;
