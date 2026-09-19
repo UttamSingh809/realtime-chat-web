@@ -1,14 +1,20 @@
 /**
- * UserAvatar — avatar + optional presence dot.
+ * UserAvatar — avatar + live presence dot.
+ *
+ * Presence is read from the in-memory presence store (populated by the
+ * socket via online:users / user:status events), NOT from the user.status
+ * field on the user object. The field is only updated by REST responses
+ * and goes stale between refetches; the store is always live.
  */
 
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { initialsFromName } from '@/lib/format';
+import { usePresenceStore } from '@/features/presence';
 import type { UserPublic, UserStatus } from '@/types';
 
 interface Props {
-  user: Pick<UserPublic, 'name' | 'avatar' | 'status'>;
+  user: Pick<UserPublic, 'id' | 'name' | 'avatar' | 'status'>;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   showPresence?: boolean;
   className?: string;
@@ -28,7 +34,7 @@ const DOT_SIZE_CLASSES: Record<NonNullable<Props['size']>, string> = {
   xl: 'h-4 w-4',
 };
 
-function presenceColor(status: UserStatus | undefined): string {
+function presenceColor(status: UserStatus): string {
   switch (status) {
     case 'online':
       return 'bg-success';
@@ -46,6 +52,12 @@ export function UserAvatar({ user, size = 'md', showPresence = false, className 
   const sizeClass = SIZE_CLASSES[size];
   const dotClass = DOT_SIZE_CLASSES[size];
 
+  // LIVE presence — reads from the store the socket keeps in sync.
+  // Falls back to whatever `user.status` had if the store hasn't been
+  // populated yet (very brief on first load before online:users arrives).
+  const isLiveOnline = usePresenceStore((s) => s.onlineIds.has(user.id));
+  const liveStatus: UserStatus = isLiveOnline ? 'online' : 'offline';
+
   return (
     <div className={cn('relative shrink-0', className)}>
       <Avatar className={sizeClass}>
@@ -56,9 +68,9 @@ export function UserAvatar({ user, size = 'md', showPresence = false, className 
       {showPresence && (
         <span
           className={cn(
-            'absolute bottom-0 right-0 rounded-full border-2 border-card',
+            'absolute bottom-0 right-0 rounded-full border-2 border-card transition-colors duration-200',
             dotClass,
-            presenceColor(user.status)
+            presenceColor(liveStatus)
           )}
           aria-hidden
         />

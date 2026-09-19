@@ -222,13 +222,10 @@ export function handleNotificationNew(
 // Presence (handled in the presence feature's own caches)
 // ---------------------------------------------------------------------------
 
-export function handleUserStatus(
-  queryClient: QueryClient,
-  payload: UserStatusEvent
-) {
+export function handleUserStatus(queryClient: QueryClient, payload: UserStatusEvent) {
   const { userId, status, lastSeen, statusMessage } = payload;
 
-  // Patch the user in every conversation's participants
+  // 1. Patch participants in the conversation list
   queryClient.setQueriesData<{ items: Conversation[] }>(
     { queryKey: QUERY_KEYS.conversations.all },
     (old) => {
@@ -238,7 +235,11 @@ export function handleUserStatus(
         items: old.items.map((conv) => ({
           ...conv,
           participants: conv.participants.map((p) => {
-            const pUser = p.user as { id?: string; status?: UserStatus; lastSeen?: string | null };
+            const pUser = p.user as {
+              id?: string;
+              status?: UserStatus;
+              lastSeen?: string | null;
+            };
             if (pUser?.id !== userId) return p;
             return {
               ...p,
@@ -254,6 +255,31 @@ export function handleUserStatus(
       };
     }
   );
+
+  // 2. Patch single conversation detail caches
+  queryClient.setQueriesData<Conversation>({ queryKey: ['conversations', 'detail'] }, (old) => {
+    if (!old) return old;
+    return {
+      ...old,
+      participants: old.participants.map((p) => {
+        const pUser = p.user as {
+          id?: string;
+          status?: UserStatus;
+          lastSeen?: string | null;
+        };
+        if (pUser?.id !== userId) return p;
+        return {
+          ...p,
+          user: {
+            ...p.user,
+            status,
+            lastSeen,
+            ...(statusMessage !== undefined ? { statusMessage } : {}),
+          },
+        };
+      }),
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------

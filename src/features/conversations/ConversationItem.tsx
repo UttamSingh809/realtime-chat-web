@@ -1,19 +1,18 @@
 /**
  * ConversationItem — real data version.
- * Reads from a Conversation object and renders the row.
+ * Uses the shared UserAvatar which reads live presence from the store.
  */
 
 import { NavLink } from 'react-router-dom';
 import { BellOff, Pin } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatRelativeShort, initialsFromName } from '@/lib/format';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { formatRelativeShort } from '@/lib/format';
 import { Badge } from '@/components/ui/badge';
-import type { Conversation } from '@/types';
+import { UserAvatar } from '@/features/users';
+import type { Conversation, UserPublic } from '@/types';
 import {
-  conversationAvatarUrl,
   conversationDisplayName,
-  conversationOnlineStatus,
+  conversationAvatarUrl,
   conversationPreview,
 } from './conversationUtils';
 import { ConversationActionsMenu } from './ConversationActionsMenu';
@@ -27,11 +26,35 @@ export function ConversationItem({ conversation, viewerId }: Props) {
   const name = conversationDisplayName(conversation, viewerId);
   const preview = conversationPreview(conversation);
   const avatarUrl = conversationAvatarUrl(conversation, viewerId);
-  const { isOnline } = conversationOnlineStatus(conversation, viewerId);
-  const initials = initialsFromName(name);
 
   const { unreadCount, pinned, muted } = conversation.myFlags;
   const timestamp = conversation.lastMessage?.createdAt || conversation.updatedAt;
+
+  // For DMs, we want the LIVE status of the other user (from the store).
+  // For groups, presence isn't shown.
+  // We pass a minimal user shape to UserAvatar; it will read the live
+  // status itself from the presence store.
+  const otherUser =
+    conversation.type === 'private'
+      ? conversation.participants.find((p) => {
+          const u = p.user as UserPublic;
+          return u?.id && u.id !== viewerId;
+        })
+      : undefined;
+
+  const avatarUser = otherUser
+    ? {
+        ...(otherUser.user as UserPublic),
+        name,
+        avatar: { url: avatarUrl, publicId: null },
+      }
+    : {
+        // Group fallback
+        id: conversation.id,
+        name,
+        avatar: { url: avatarUrl, publicId: null },
+        status: 'offline' as const,
+      };
 
   return (
     <NavLink
@@ -44,20 +67,8 @@ export function ConversationItem({ conversation, viewerId }: Props) {
         )
       }
     >
-      {/* Avatar + presence dot */}
-      <div className="relative shrink-0">
-        <Avatar className="h-11 w-11">
-          {avatarUrl ? <AvatarImage src={avatarUrl} alt={name} /> : null}
-          <AvatarFallback>{initials}</AvatarFallback>
-        </Avatar>
-
-        {isOnline && (
-          <span
-            className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-card bg-success"
-            aria-label="Online"
-          />
-        )}
-      </div>
+      {/* Avatar — LIVE presence for private conversations */}
+      <UserAvatar user={avatarUser} size="md" showPresence={conversation.type === 'private'} />
 
       {/* Content */}
       <div className="min-w-0 flex-1">
