@@ -19,7 +19,6 @@ export * from './MessageSkeleton';
 export * from './MessageActionsMenu';
 export * from './TypingIndicator';
 export * from './EmojiPicker';
-export * from './ReactionPicker';
 export * from './MessageReactions';
 export * from './MessageStatusIcon';
 export * from './MessageReadInfo';

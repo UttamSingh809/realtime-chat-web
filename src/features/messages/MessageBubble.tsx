@@ -1,22 +1,28 @@
 /**
- * MessageBubble — a single message within a group, with reactions and read status.
+ * MessageBubble — a single message within a group.
+ *
+ * Layout:
+ *   - Smiley trigger button sits OUTSIDE the bubble, at the outer edge
+ *   - Reaction picker pops ABOVE the bubble on click (absolute, no layout shift)
+ *   - Reactions render as pills just below the bubble
  */
 
 import { useState, useMemo } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, SmilePlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { formatMessageTime } from '@/lib/format';
 import type { Conversation, Message } from '@/types';
 import { MessageActionsMenu } from './MessageActionsMenu';
-import { ReactionPicker } from './ReactionPicker';
+import { EmojiPicker } from './EmojiPicker';
 import { MessageReactions } from './MessageReactions';
 import { groupReactions } from './messageUtils';
 import { MessageStatusIcon } from './MessageStatusIcon';
 import { MessageReadInfo } from './MessageReadInfo';
 import { ReadByPopover } from './ReadByPopover';
 import { getMessageStatus, getReadersList, getPendingReadersList } from './messageStatus';
-import { AttachmentGrid } from '@/features/files';
+import { QUICK_REACTIONS } from '@/lib/emoji';
 
 interface Props {
   message: Message;
@@ -43,12 +49,11 @@ export function MessageBubble({
 }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(message.content);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const reactionGroups = groupReactions(message, myUserId);
-
   const isGroup = conversation.type === 'group';
 
-  // Delivery status (only meaningful for my messages)
   const status = useMemo(
     () => (isMine ? getMessageStatus(message, conversation) : 'unknown'),
     [isMine, message, conversation]
@@ -66,9 +71,7 @@ export function MessageBubble({
 
   const handleSave = () => {
     const trimmed = draft.trim();
-    if (trimmed && trimmed !== message.content) {
-      onEdit(message.id, trimmed);
-    }
+    if (trimmed && trimmed !== message.content) onEdit(message.id, trimmed);
     setEditing(false);
   };
 
@@ -83,24 +86,56 @@ export function MessageBubble({
     }
   };
 
-  const handleToggleReaction = (emoji: string) => {
+  const handleReact = (emoji: string) => {
     onReact(message.id, emoji);
+    setPickerOpen(false);
   };
+
+  const canReact = !message.isDeleted && !editing;
+
+  // The smiley trigger — sits OUTSIDE the bubble on the outer edge.
+  const smiley = canReact ? (
+    <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            'flex h-7 w-7 shrink-0 items-center justify-center rounded-full',
+            'text-muted-foreground opacity-0 transition-opacity',
+            'hover:bg-accent hover:text-foreground',
+            'group-hover/message:opacity-100 focus-visible:opacity-100',
+            'data-[state=open]:opacity-100'
+          )}
+          aria-label="React to message"
+        >
+          <SmilePlus className="h-4 w-4" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        side="top"
+        align={isMine ? 'end' : 'start'}
+        sideOffset={8}
+        className="w-auto p-0"
+      >
+        <ReactionBar onSelect={handleReact} />
+      </PopoverContent>
+    </Popover>
+  ) : null;
 
   return (
     <div
       className={cn(
-        'group/message flex flex-col gap-0.5 px-4',
+        'group/message flex w-full flex-col gap-0.5 px-4',
         isMine ? 'items-end' : 'items-start'
       )}
     >
-      <div
-        className={cn('flex w-full items-end gap-1.5', isMine ? 'flex-row-reverse' : 'flex-row')}
-      >
-        {!editing && !message.isDeleted && (
-          <ReactionPicker onReact={handleToggleReaction} className="mb-1 shrink-0" />
-        )}
+      {/* Bubble row: [smiley] [bubble] [actions-menu] for received
+                      [actions-menu] [bubble] [smiley] for sent */}
+      <div className={cn('flex w-full items-end gap-1', isMine ? 'flex-row-reverse' : 'flex-row')}>
+        {/* Smiley on the OUTER edge */}
+        <div className="flex h-full items-end pb-1.5">{smiley}</div>
 
+        {/* Bubble */}
         <div
           className={cn(
             'relative max-w-[75%] rounded-2xl px-3.5 py-2 text-sm shadow-sm',
@@ -108,6 +143,7 @@ export function MessageBubble({
             isLastInGroup ? (isMine ? 'rounded-br-sm' : 'rounded-bl-sm') : ''
           )}
         >
+          {/* Reply preview */}
           {message.replyTo && (
             <div
               className={cn(
@@ -128,6 +164,7 @@ export function MessageBubble({
             </div>
           )}
 
+          {/* Content / edit mode */}
           {editing ? (
             <div className="space-y-1.5">
               <Textarea
@@ -156,21 +193,7 @@ export function MessageBubble({
           ) : message.isDeleted ? (
             <p className="italic opacity-70">This message was deleted</p>
           ) : (
-            <>
-              {message.attachments.length > 0 && (
-                <AttachmentGrid attachments={message.attachments} isMine={isMine} />
-              )}
-              {message.content && (
-                <p
-                  className={cn(
-                    'whitespace-pre-wrap break-words',
-                    message.attachments.length > 0 && 'mt-1.5'
-                  )}
-                >
-                  {message.content}
-                </p>
-              )}
-            </>
+            <p className="whitespace-pre-wrap break-words">{message.content}</p>
           )}
 
           {/* Footer: edited, time, status icon */}
@@ -189,14 +212,17 @@ export function MessageBubble({
           </div>
         </div>
 
+        {/* Actions menu — on the INNER edge (opposite of smiley) */}
         {!message.isDeleted && !editing && (
-          <MessageActionsMenu
-            message={message}
-            isMine={isMine}
-            onEdit={() => setEditing(true)}
-            onDeleteForMe={() => onDeleteForMe(message.id)}
-            onDeleteForEveryone={() => onDeleteForEveryone(message.id)}
-          />
+          <div className="flex h-full items-end pb-1.5">
+            <MessageActionsMenu
+              message={message}
+              isMine={isMine}
+              onEdit={() => setEditing(true)}
+              onDeleteForMe={() => onDeleteForMe(message.id)}
+              onDeleteForEveryone={() => onDeleteForEveryone(message.id)}
+            />
+          </div>
         )}
       </div>
 
@@ -211,12 +237,51 @@ export function MessageBubble({
         </ReadByPopover>
       )}
 
-      {/* Reactions */}
-      <MessageReactions
-        reactions={reactionGroups}
-        onToggle={handleToggleReaction}
-        isMine={isMine}
-      />
+      {/* Reactions below the bubble */}
+      <MessageReactions reactions={reactionGroups} onToggle={handleReact} isMine={isMine} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Reaction bar — the quick emojis + "more" trigger
+// ---------------------------------------------------------------------------
+
+interface ReactionBarProps {
+  onSelect: (emoji: string) => void;
+}
+
+function ReactionBar({ onSelect }: ReactionBarProps) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (expanded) {
+    return <EmojiPicker onSelect={onSelect} />;
+  }
+
+  return (
+    <div className="flex items-center gap-1 p-1">
+      {QUICK_REACTIONS.map((emoji) => (
+        <button
+          key={emoji}
+          type="button"
+          onClick={() => onSelect(emoji)}
+          className="flex h-8 w-8 items-center justify-center rounded-md text-lg transition-colors hover:bg-accent"
+          aria-label={`React with ${emoji}`}
+        >
+          {emoji}
+        </button>
+      ))}
+
+      <div className="mx-1 h-6 w-px bg-border" />
+
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        aria-label="More emojis"
+      >
+        <span className="text-lg leading-none">+</span>
+      </button>
     </div>
   );
 }
