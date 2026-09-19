@@ -152,21 +152,25 @@ export function handleMessageReaction(
   queryClient.invalidateQueries({ queryKey: key });
 }
 
-export function handleMessageRead(
-  queryClient: QueryClient,
-  payload: MessageReadEvent
-) {
+export function handleMessageRead(queryClient: QueryClient, payload: MessageReadEvent) {
   const { conversationId, userId, upToMessageId, readAt } = payload;
   const key = QUERY_KEYS.messages.history(conversationId);
 
   queryClient.setQueryData<InfiniteMessages>(key, (old) => {
     if (!old) return old;
+
+    // Find the index of upToMessageId in the flattened list
+    // (or if null, apply to all messages)
+    const allIds = old.pages.flatMap((p) => p.items.map((m) => m.id));
+    const cutoffIndex = upToMessageId ? allIds.indexOf(upToMessageId) : allIds.length - 1;
+    const relevantIds = new Set(allIds.slice(0, cutoffIndex + 1));
+
     return {
       ...old,
       pages: old.pages.map((p) => ({
         ...p,
         items: p.items.map((m) => {
-          // Add a read receipt if not already present
+          if (!relevantIds.has(m.id)) return m;
           if (m.readBy.some((r) => r.userId === userId)) return m;
           return {
             ...m,
@@ -176,9 +180,6 @@ export function handleMessageRead(
       })),
     };
   });
-
-  // Silence unused warning for upToMessageId (used in future optimization)
-  void upToMessageId;
 }
 
 // ---------------------------------------------------------------------------

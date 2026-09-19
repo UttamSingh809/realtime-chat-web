@@ -1,21 +1,26 @@
 /**
- * MessageBubble — a single message within a group, with reactions.
+ * MessageBubble — a single message within a group, with reactions and read status.
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { formatMessageTime } from '@/lib/format';
-import type { Message } from '@/types';
+import type { Conversation, Message } from '@/types';
 import { MessageActionsMenu } from './MessageActionsMenu';
 import { ReactionPicker } from './ReactionPicker';
 import { MessageReactions } from './MessageReactions';
 import { groupReactions } from './messageUtils';
+import { MessageStatusIcon } from './MessageStatusIcon';
+import { MessageReadInfo } from './MessageReadInfo';
+import { ReadByPopover } from './ReadByPopover';
+import { getMessageStatus, getReadersList, getPendingReadersList } from './messageStatus';
+import { AttachmentGrid } from '@/features/files';
 
 interface Props {
   message: Message;
+  conversation: Conversation;
   isMine: boolean;
   isLastInGroup: boolean;
   myUserId: string;
@@ -27,6 +32,7 @@ interface Props {
 
 export function MessageBubble({
   message,
+  conversation,
   isMine,
   isLastInGroup,
   myUserId,
@@ -39,6 +45,24 @@ export function MessageBubble({
   const [draft, setDraft] = useState(message.content);
 
   const reactionGroups = groupReactions(message, myUserId);
+
+  const isGroup = conversation.type === 'group';
+
+  // Delivery status (only meaningful for my messages)
+  const status = useMemo(
+    () => (isMine ? getMessageStatus(message, conversation) : 'unknown'),
+    [isMine, message, conversation]
+  );
+
+  const readers = useMemo(
+    () => (isMine && isGroup ? getReadersList(message, conversation) : []),
+    [isMine, isGroup, message, conversation]
+  );
+
+  const pending = useMemo(
+    () => (isMine && isGroup ? getPendingReadersList(message, conversation) : []),
+    [isMine, isGroup, message, conversation]
+  );
 
   const handleSave = () => {
     const trimmed = draft.trim();
@@ -70,16 +94,13 @@ export function MessageBubble({
         isMine ? 'items-end' : 'items-start'
       )}
     >
-      {/* Row: reactions-picker + bubble + actions-menu */}
       <div
         className={cn('flex w-full items-end gap-1.5', isMine ? 'flex-row-reverse' : 'flex-row')}
       >
-        {/* Reaction picker (hover only, hidden in edit mode) */}
         {!editing && !message.isDeleted && (
           <ReactionPicker onReact={handleToggleReaction} className="mb-1 shrink-0" />
         )}
 
-        {/* Bubble */}
         <div
           className={cn(
             'relative max-w-[75%] rounded-2xl px-3.5 py-2 text-sm shadow-sm',
@@ -87,7 +108,6 @@ export function MessageBubble({
             isLastInGroup ? (isMine ? 'rounded-br-sm' : 'rounded-bl-sm') : ''
           )}
         >
-          {/* Reply preview */}
           {message.replyTo && (
             <div
               className={cn(
@@ -108,7 +128,6 @@ export function MessageBubble({
             </div>
           )}
 
-          {/* Content / edit mode */}
           {editing ? (
             <div className="space-y-1.5">
               <Textarea
@@ -137,10 +156,24 @@ export function MessageBubble({
           ) : message.isDeleted ? (
             <p className="italic opacity-70">This message was deleted</p>
           ) : (
-            <p className="whitespace-pre-wrap break-words">{message.content}</p>
+            <>
+              {message.attachments.length > 0 && (
+                <AttachmentGrid attachments={message.attachments} isMine={isMine} />
+              )}
+              {message.content && (
+                <p
+                  className={cn(
+                    'whitespace-pre-wrap break-words',
+                    message.attachments.length > 0 && 'mt-1.5'
+                  )}
+                >
+                  {message.content}
+                </p>
+              )}
+            </>
           )}
 
-          {/* Footer: edited + timestamp */}
+          {/* Footer: edited, time, status icon */}
           <div
             className={cn(
               'mt-0.5 flex items-center gap-1.5 text-[10px]',
@@ -149,11 +182,13 @@ export function MessageBubble({
           >
             {message.isEdited && <span>edited</span>}
             <span>{formatMessageTime(message.createdAt)}</span>
+
+            {isMine && !message.isDeleted && <MessageStatusIcon status={status} isMine={isMine} />}
+
             {message._optimistic && <Loader2 className="h-3 w-3 animate-spin" />}
           </div>
         </div>
 
-        {/* Actions menu (edit/delete/copy) */}
         {!message.isDeleted && !editing && (
           <MessageActionsMenu
             message={message}
@@ -164,6 +199,17 @@ export function MessageBubble({
           />
         )}
       </div>
+
+      {/* Read-by info (groups only, my messages only) */}
+      {isMine && isGroup && readers.length > 0 && (
+        <ReadByPopover
+          readers={readers}
+          pending={pending}
+          className={cn('mr-1', 'text-primary-foreground/70')}
+        >
+          <MessageReadInfo readers={readers} pending={pending} isGroup={isGroup} isMine={isMine} />
+        </ReadByPopover>
+      )}
 
       {/* Reactions */}
       <MessageReactions

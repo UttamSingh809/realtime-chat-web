@@ -5,13 +5,14 @@
 import { cn } from '@/lib/utils';
 import { UserAvatar } from '@/features/users';
 import { useAuth } from '@/features/auth';
-import type { Message } from '@/types';
+import { formatRelativeShort } from '@/lib/format';
+import type { Conversation } from '@/types';
 import { MessageBubble } from './MessageBubble';
 import type { MessageGroupData } from './messageUtils';
-import { formatRelativeShort } from '@/lib/format';
 
 interface Props {
   group: MessageGroupData;
+  conversation: Conversation;
   onEdit: (messageId: string, content: string) => void;
   onDeleteForMe: (messageId: string) => void;
   onDeleteForEveryone: (messageId: string) => void;
@@ -20,6 +21,7 @@ interface Props {
 
 export function MessageGroup({
   group,
+  conversation,
   onEdit,
   onDeleteForMe,
   onDeleteForEveryone,
@@ -32,7 +34,6 @@ export function MessageGroup({
 
   return (
     <div className={cn('flex gap-3 px-4 py-1', isMine && 'flex-row-reverse')}>
-      {/* Sender avatar (only shown for other people's messages) */}
       {!isMine && (
         <div className="w-8 shrink-0">
           {sender ? (
@@ -44,7 +45,6 @@ export function MessageGroup({
       )}
 
       <div className={cn('flex min-w-0 flex-1 flex-col gap-0.5', isMine && 'items-end')}>
-        {/* Sender name + time (only for other people's groups) */}
         {!isMine && sender && (
           <div className="flex items-baseline gap-2 px-1 text-xs text-muted-foreground">
             <span className="font-medium text-foreground">{sender.name}</span>
@@ -52,11 +52,11 @@ export function MessageGroup({
           </div>
         )}
 
-        {/* Bubbles */}
         {messages.map((msg, i) => (
           <MessageBubble
             key={msg.id}
             message={msg}
+            conversation={conversation}
             isMine={isMine}
             isLastInGroup={i === messages.length - 1}
             myUserId={user.id}

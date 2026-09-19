@@ -23,9 +23,11 @@ import {
   useMessageReactions,
   useTypingEmitter,
   useTypingSubscription,
+  useAutoDeliver,
 } from '@/features/messages';
 import { useSocketConnection } from '@/features/socket';
 import type { UserPublic } from '@/types';
+import type { Attachment } from '@/types';
 
 export default function ChatConversationPage() {
   const { id } = useParams<{ id: string }>();
@@ -57,6 +59,8 @@ export default function ChatConversationPage() {
 
   const messages = useMemo(() => flattenMessages(pages?.pages), [pages]);
 
+  useAutoDeliver(id, messages);
+
   const conversationName = useMemo(() => {
     if (!conversation || !user) return 'Conversation';
     return conversationDisplayName(conversation, user.id);
@@ -86,10 +90,10 @@ export default function ChatConversationPage() {
   }, [conversation?.id, messages.length]);
 
   const handleSend = useCallback(
-    (content: string) => {
+    (content: string, attachments?: Attachment[]) => {
       if (!id) return;
       typing.stop();
-      send.mutate({ conversationId: id, content });
+      send.mutate({ conversationId: id, content, attachments });
     },
     [id, send, typing]
   );
@@ -179,6 +183,7 @@ export default function ChatConversationPage() {
       {loadingMessages && messages.length === 0 ? (
         <MessageList
           messages={[]}
+          conversation={conversation}
           isLoading
           isFetchingNextPage={false}
           hasNextPage={false}
@@ -193,6 +198,7 @@ export default function ChatConversationPage() {
       ) : (
         <MessageList
           messages={messages}
+          conversation={conversation}
           isLoading={false}
           isFetchingNextPage={isFetchingNextPage}
           hasNextPage={!!hasNextPage}

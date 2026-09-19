@@ -9,13 +9,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 import { format, isToday, isYesterday } from 'date-fns';
 import { useAuth } from '@/features/auth';
-import type { Message } from '@/types';
 import { MessageGroup } from './MessageGroup';
 import { MessageSkeleton } from './MessageSkeleton';
 import { groupMessages, shouldShowDateDivider } from './messageUtils';
+import type { Conversation, Message } from '@/types';
 
 interface Props {
   messages: Message[];
+  conversation: Conversation;
   isLoading: boolean;
   isFetchingNextPage: boolean;
   hasNextPage: boolean;
@@ -35,6 +36,7 @@ function formatDateDivider(iso: string): string {
 
 export function MessageList({
   messages,
+  conversation,
   isLoading,
   isFetchingNextPage,
   hasNextPage,
@@ -135,6 +137,7 @@ export function MessageList({
           return (
             <MessageGroup
               group={item.group}
+              conversation={conversation}
               onEdit={onEdit}
               onDeleteForMe={onDeleteForMe}
               onDeleteForEveryone={onDeleteForEveryone}

@@ -1,11 +1,12 @@
 /**
- * SidebarHeader — brand + new-chat button + sidebar collapse toggle.
+ * SidebarHeader — brand + new-chat + notifications + collapse toggle.
  */
 
 import { MessageSquarePlus, PanelLeftClose, PanelLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useUIStore } from '@/stores/ui.store';
+import { NotificationBell } from '@/features/notifications';
 import { APP_NAME } from '@/lib/constants';
 
 interface Props {
@@ -41,6 +42,8 @@ export function SidebarHeader({ onCreateConversation }: Props) {
           </TooltipTrigger>
           <TooltipContent side="right">New chat</TooltipContent>
         </Tooltip>
+
+        <NotificationBell />
       </div>
     );
   }
@@ -62,6 +65,8 @@ export function SidebarHeader({ onCreateConversation }: Props) {
           </TooltipTrigger>
           <TooltipContent>New chat</TooltipContent>
         </Tooltip>
+
+        <NotificationBell />
 
         <Tooltip>
           <TooltipTrigger asChild>

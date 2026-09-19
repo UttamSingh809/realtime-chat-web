@@ -93,6 +93,11 @@ export const messagesApi = {
       `/messages/${id}/read`
     ),
 
+    markDelivered: (id: string) =>
+      api.post<ApiSuccess<{ delivered: boolean; alreadyDelivered: boolean }>>(
+        `/messages/${id}/deliver`
+    ),
+
   forward: (input: ForwardMessageInput) =>
     api.post<ApiSuccess<{ message: Message }>>('/messages/forward', input),
 
