@@ -25,12 +25,30 @@ export function ConversationList({ searchQuery = '', archived = false }: Props) 
   // Filter by search term locally. Server-side search comes in Step 8.
   const filtered = useMemo(() => {
     if (!data?.items) return [];
-    if (!searchQuery.trim() || !user) return data.items;
 
-    const q = searchQuery.toLowerCase();
-    return data.items.filter((c) => {
-      const name = conversationDisplayName(c, user.id).toLowerCase();
-      return name.includes(q);
+    // Filter by search query if provided
+    const matches =
+      !searchQuery.trim() || !user
+        ? data.items
+        : data.items.filter((c) => {
+            const q = searchQuery.toLowerCase();
+            return conversationDisplayName(c, user.id).toLowerCase().includes(q);
+          });
+
+    // Stable sort:
+    //   pinned first, then by last message createdAt desc (fallback: conversation createdAt desc)
+    //
+    // We intentionally do NOT sort by `updatedAt` — reading a conversation
+    // and toggling flags bump that field, which would reorder the sidebar
+    // every time you click a row. Sorting by last message time ensures the
+    // order only changes when a NEW message actually arrives.
+    return [...matches].sort((a, b) => {
+      if (a.myFlags.pinned !== b.myFlags.pinned) {
+        return a.myFlags.pinned ? -1 : 1;
+      }
+      const aTime = a.lastMessage?.createdAt ?? a.createdAt;
+      const bTime = b.lastMessage?.createdAt ?? b.createdAt;
+      return new Date(bTime).getTime() - new Date(aTime).getTime();
     });
   }, [data, searchQuery, user]);
 
