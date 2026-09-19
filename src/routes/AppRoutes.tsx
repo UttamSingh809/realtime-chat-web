@@ -20,8 +20,17 @@ import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
 import ChatEmptyPage from '@/pages/ChatEmptyPage';
 import ChatConversationPage from '@/pages/ChatConversationPage';
+import SettingsPage, { SettingsIndexRedirect } from '@/pages/SettingsPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import { Loader2 } from 'lucide-react';
+
+import { ProfileSettings } from '@/features/settings';
+import { AccountSettings } from '@/features/settings';
+import { PrivacySettings } from '@/features/settings';
+import { NotificationsSettings } from '@/features/settings';
+import { AppearanceSettings } from '@/features/settings';
+import { BlockedUsersList } from '@/features/settings';
+import { MutedUsersList } from '@/features/settings';
 
 function BootScreen() {
   return (
@@ -50,11 +59,22 @@ export function AppRoutes() {
           <Route path="/register" element={<RegisterPage />} />
         </Route>
 
-        {/* Protected — all under /app use AppLayout */}
+        {/* Protected */}
         <Route element={<ProtectedRoute />}>
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<ChatEmptyPage />} />
             <Route path="chat/:id" element={<ChatConversationPage />} />
+
+            <Route path="settings" element={<SettingsPage />}>
+              <Route index element={<SettingsIndexRedirect />} />
+              <Route path="profile" element={<ProfileSettings />} />
+              <Route path="account" element={<AccountSettings />} />
+              <Route path="privacy" element={<PrivacySettings />} />
+              <Route path="notifications" element={<NotificationsSettings />} />
+              <Route path="appearance" element={<AppearanceSettings />} />
+              <Route path="blocked" element={<BlockedUsersList />} />
+              <Route path="muted" element={<MutedUsersList />} />
+            </Route>
           </Route>
         </Route>
 
