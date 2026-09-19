@@ -1,5 +1,6 @@
 /**
  * PrivacySettings — last seen, online status, read receipts, allow messages.
+ * Defensive: falls back to defaults if the backend hasn't returned settings yet.
  */
 
 import { useAuth } from '@/features/auth';
@@ -14,6 +15,14 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useUpdateSettings } from './useUpdateSettings';
+import type { PrivacySettings as PrivacySettingsType } from '@/types';
+
+const DEFAULT_PRIVACY: PrivacySettingsType = {
+  showLastSeen: true,
+  showOnlineStatus: true,
+  readReceipts: true,
+  allowMessagesFrom: 'everyone',
+};
 
 interface RowProps {
   label: string;
@@ -39,7 +48,12 @@ export function PrivacySettings() {
   const update = useUpdateSettings();
 
   if (!user) return null;
-  const privacy = user.settings?.privacy;
+
+  // Merge with defaults so a missing/partial settings object never crashes.
+  const privacy: PrivacySettingsType = {
+    ...DEFAULT_PRIVACY,
+    ...(user.settings?.privacy ?? {}),
+  };
 
   return (
     <div className="space-y-6">

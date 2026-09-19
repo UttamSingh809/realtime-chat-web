@@ -1,11 +1,22 @@
 /**
  * NotificationsSettings — what notifications to receive.
+ * Defensive: falls back to defaults if the backend hasn't returned settings yet.
  */
 
 import { useAuth } from '@/features/auth';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useUpdateSettings } from './useUpdateSettings';
+import type { NotificationSettings } from '@/types';
+
+const DEFAULT_NOTIFICATIONS: NotificationSettings = {
+  messages: true,
+  mentions: true,
+  reactions: true,
+  sound: true,
+  email: false,
+  push: false,
+};
 
 interface RowProps {
   label: string;
@@ -31,7 +42,12 @@ export function NotificationsSettings() {
   const update = useUpdateSettings();
 
   if (!user) return null;
-  const n = user.settings?.notifications;
+
+  // Merge with defaults so a missing/partial settings object never crashes.
+  const n: NotificationSettings = {
+    ...DEFAULT_NOTIFICATIONS,
+    ...(user.settings?.notifications ?? {}),
+  };
 
   return (
     <div className="space-y-6">

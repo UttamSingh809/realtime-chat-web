@@ -22,7 +22,7 @@ import ChatEmptyPage from '@/pages/ChatEmptyPage';
 import ChatConversationPage from '@/pages/ChatConversationPage';
 import SettingsPage, { SettingsIndexRedirect } from '@/pages/SettingsPage';
 import NotFoundPage from '@/pages/NotFoundPage';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';import { ErrorBoundary } from '@/components/common';
 
 import { ProfileSettings } from '@/features/settings';
 import { AccountSettings } from '@/features/settings';
@@ -30,7 +30,7 @@ import { PrivacySettings } from '@/features/settings';
 import { NotificationsSettings } from '@/features/settings';
 import { AppearanceSettings } from '@/features/settings';
 import { BlockedUsersList } from '@/features/settings';
-import { MutedUsersList } from '@/features/settings';
+import { MutedChatsList } from '@/features/settings';
 
 function BootScreen() {
   return (
@@ -73,7 +73,7 @@ export function AppRoutes() {
               <Route path="notifications" element={<NotificationsSettings />} />
               <Route path="appearance" element={<AppearanceSettings />} />
               <Route path="blocked" element={<BlockedUsersList />} />
-              <Route path="muted" element={<MutedUsersList />} />
+              <Route path="muted" element={<MutedChatsList />} />
             </Route>
           </Route>
         </Route>

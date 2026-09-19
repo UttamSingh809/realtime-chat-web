@@ -21,7 +21,7 @@ const TABS = [
   { to: 'notifications', label: 'Notifications' },
   { to: 'appearance', label: 'Appearance' },
   { to: 'blocked', label: 'Blocked users' },
-  { to: 'muted', label: 'Muted users' },
+  { to: 'muted', label: 'Muted chats' },
 ];
 
 export default function SettingsPage() {

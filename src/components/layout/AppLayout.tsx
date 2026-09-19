@@ -10,6 +10,7 @@ import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useUIStore } from '@/stores/ui.store';
 import { Sidebar } from './Sidebar';
 import { MainContent } from './MainContent';
+import { ErrorBoundary } from '@/components/common';
 
 export function AppLayout() {
   const mobileOpen = useUIStore((s) => s.mobileSidebarOpen);
@@ -28,7 +29,9 @@ export function AppLayout() {
       </Sheet>
 
       <MainContent>
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </MainContent>
     </div>
   );

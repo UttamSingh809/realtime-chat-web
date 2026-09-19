@@ -9,4 +9,5 @@ export * from './PrivacySettings';
 export * from './NotificationsSettings';
 export * from './AppearanceSettings';
 export * from './BlockedUsersList';
-export * from './MutedUsersList';
+export * from './MutedChatsList';
+export * from './useMutedConversations';
