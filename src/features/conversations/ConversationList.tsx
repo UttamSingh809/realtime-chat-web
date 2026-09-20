@@ -3,7 +3,7 @@
  * Fetches conversations, handles loading/empty/error states, and search.
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Loader2, MessageSquare } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/features/auth';

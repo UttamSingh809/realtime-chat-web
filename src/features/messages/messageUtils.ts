@@ -110,7 +110,7 @@ export interface ReactionGroup {
 
 export function groupReactions(
   message: Message,
-  myUserId: string
+  _myUserId: string
 ): ReactionGroup[] {
   // The backend returns a summary: { [emoji]: { count, mine } }
   // where "mine" is computed for the caller.

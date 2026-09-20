@@ -22,7 +22,7 @@ import ChatEmptyPage from '@/pages/ChatEmptyPage';
 import ChatConversationPage from '@/pages/ChatConversationPage';
 import SettingsPage, { SettingsIndexRedirect } from '@/pages/SettingsPage';
 import NotFoundPage from '@/pages/NotFoundPage';
-import { Loader2 } from 'lucide-react';import { ErrorBoundary } from '@/components/common';
+import { Loader2 } from 'lucide-react';
 
 import { ProfileSettings } from '@/features/settings';
 import { AccountSettings } from '@/features/settings';

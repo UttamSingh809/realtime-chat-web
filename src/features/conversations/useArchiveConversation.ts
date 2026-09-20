@@ -18,8 +18,8 @@ export function useArchiveConversation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, archived }: Variables) => conversationsApi.archive(id, archived),
-    onMutate: async ({ id, archived }) => {
+    mutationFn: ({ id, archived: _archived }: Variables) => conversationsApi.archive(id, _archived),
+    onMutate: async ({ id }: Variables) => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEYS.conversations.all });
 
       const snapshots = queryClient.getQueriesData<{ items: Conversation[] }>({

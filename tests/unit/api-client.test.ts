@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import axios from 'axios';
 import { normalizeError } from '@/api/client';
 import { useAuthStore } from '@/stores/auth.store';

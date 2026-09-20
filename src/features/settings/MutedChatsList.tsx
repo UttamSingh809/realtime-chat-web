@@ -50,6 +50,7 @@ export function MutedChatsList() {
               <li key={c.id} className="flex items-center gap-3 p-3">
                 <UserAvatar
                   user={{
+                    id: c.id,
                     name,
                     avatar: { url: avatarUrl, publicId: null },
                     status: 'offline',

@@ -7,7 +7,6 @@
 
 import type { QueryClient } from '@tanstack/react-query';
 import { QUERY_KEYS } from '@/lib/constants';
-import { useAuthStore } from '@/stores/auth.store';
 import type { Message, Conversation, Notification, UserStatus } from '@/types';
 import type {
   MessageNewEvent,

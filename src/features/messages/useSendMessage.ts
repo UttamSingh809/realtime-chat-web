@@ -23,7 +23,7 @@ interface InfiniteData {
   pageParams: unknown[];
 }
 
-export function useSendMessage(conversationId: string | undefined) {
+export function useSendMessage(_conversationId: string | undefined) {
   const queryClient = useQueryClient();
 
   return useMutation({

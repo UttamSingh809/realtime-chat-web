@@ -2,7 +2,7 @@
  * Helpers for rendering conversations.
  */
 
-import type { Conversation, UserPublic, Participant } from '@/types';
+import type { Conversation, UserPublic } from '@/types';
 
 /**
  * Extract the "other" participant from a private conversation.
