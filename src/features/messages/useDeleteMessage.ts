@@ -42,7 +42,7 @@ export function useDeleteMessage(conversationId: string | undefined) {
           };
         });
       } else {
-        // Mark as deleted in place (tombstone)
+        // Mark as deleted in place (tombstone) and wipe non-tombstone state.
         queryClient.setQueryData<InfiniteData>(queryKey, (old) => {
           if (!old) return old;
           return {
@@ -51,7 +51,16 @@ export function useDeleteMessage(conversationId: string | undefined) {
               ...page,
               items: page.items.map((m) =>
                 m.id === messageId
-                  ? { ...m, isDeleted: true, content: '', attachments: [] }
+                  ? {
+                      ...m,
+                      isDeleted: true,
+                      content: '',
+                      attachments: [],
+                      reactions: {},
+                      isPinned: false,
+                      isStarred: false,
+                      mentions: [],
+                    }
                   : m
               ),
             })),

@@ -237,8 +237,14 @@ export function MessageBubble({
         </ReadByPopover>
       )}
 
-      {/* Reactions below the bubble */}
-      <MessageReactions reactions={reactionGroups} onToggle={handleReact} isMine={isMine} />
+      {/* Reactions below the bubble (hidden on tombstones) */}
+      {!message.isDeleted && (
+        <MessageReactions
+          reactions={reactionGroups}
+          onToggle={handleReact}
+          isMine={isMine}
+        />
+      )}
     </div>
   );
 }

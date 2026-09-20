@@ -86,7 +86,20 @@ export function handleMessageDeleted(queryClient: QueryClient, payload: MessageD
         ...p,
         items: deletedForEveryone
           ? p.items.map((m) =>
-              m.id === messageId ? { ...m, isDeleted: true, content: '', attachments: [] } : m
+              m.id === messageId
+                ? {
+                    ...m,
+                    isDeleted: true,
+                    content: '',
+                    attachments: [],
+                    // Wipe every piece of state that no longer makes sense
+                    // on a tombstone.
+                    reactions: {},
+                    isPinned: false,
+                    isStarred: false,
+                    mentions: [],
+                  }
+                : m
             )
           : p.items.filter((m) => m.id !== messageId),
       })),
