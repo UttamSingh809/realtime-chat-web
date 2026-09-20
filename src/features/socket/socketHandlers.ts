@@ -7,12 +7,8 @@
 
 import type { QueryClient } from '@tanstack/react-query';
 import { QUERY_KEYS } from '@/lib/constants';
-import type {
-  Message,
-  Conversation,
-  Notification,
-  UserStatus,
-} from '@/types';
+import { useAuthStore } from '@/stores/auth.store';
+import type { Message, Conversation, Notification, UserStatus } from '@/types';
 import type {
   MessageNewEvent,
   MessageEditedEvent,
@@ -34,10 +30,7 @@ interface InfiniteMessages {
 // Messages
 // ---------------------------------------------------------------------------
 
-export function handleMessageNew(
-  queryClient: QueryClient,
-  payload: MessageNewEvent
-) {
+export function handleMessageNew(queryClient: QueryClient, payload: MessageNewEvent) {
   const { message, conversationId } = payload;
 
   // 1. Append to the messages cache for that conversation (if it exists)
@@ -47,9 +40,7 @@ export function handleMessageNew(
     queryClient.setQueryData<InfiniteMessages>(messagesKey, (old) => {
       if (!old) return old;
       // Skip if we already have it (e.g., optimistic insert resolved)
-      const hasMessage = old.pages.some((p) =>
-        p.items.some((m) => m.id === message.id)
-      );
+      const hasMessage = old.pages.some((p) => p.items.some((m) => m.id === message.id));
       if (hasMessage) return old;
 
       const pages = [...old.pages];
@@ -65,10 +56,7 @@ export function handleMessageNew(
   queryClient.invalidateQueries({ queryKey: QUERY_KEYS.conversations.all });
 }
 
-export function handleMessageEdited(
-  queryClient: QueryClient,
-  payload: MessageEditedEvent
-) {
+export function handleMessageEdited(queryClient: QueryClient, payload: MessageEditedEvent) {
   const { message } = payload;
   const key = QUERY_KEYS.messages.history(message.conversationId);
   queryClient.setQueryData<InfiniteMessages>(key, (old) => {
@@ -86,10 +74,7 @@ export function handleMessageEdited(
   queryClient.setQueryData(QUERY_KEYS.messages.detail(message.id), message);
 }
 
-export function handleMessageDeleted(
-  queryClient: QueryClient,
-  payload: MessageDeletedEvent
-) {
+export function handleMessageDeleted(queryClient: QueryClient, payload: MessageDeletedEvent) {
   const { conversationId, messageId, deletedForEveryone } = payload;
   const key = QUERY_KEYS.messages.history(conversationId);
 
@@ -101,9 +86,7 @@ export function handleMessageDeleted(
         ...p,
         items: deletedForEveryone
           ? p.items.map((m) =>
-              m.id === messageId
-                ? { ...m, isDeleted: true, content: '', attachments: [] }
-                : m
+              m.id === messageId ? { ...m, isDeleted: true, content: '', attachments: [] } : m
             )
           : p.items.filter((m) => m.id !== messageId),
       })),
@@ -112,44 +95,24 @@ export function handleMessageDeleted(
 
   queryClient.invalidateQueries({ queryKey: QUERY_KEYS.conversations.all });
 }
+/***
+ * Strategy: invalidate the conversation's message history so it refetches
+ * from the server. This is intentionally simple — the alternative (patching
+ * the cache in place) required perfect symmetry between client and server
+ * for every replacement, removal, and multi-user race, which is easy to
+ * get wrong and hard to debug.
+ *
+ * React Query refetches in the background while continuing to display the
+ * previous data, so there's no visible flicker. The final state always
+ * matches the server.
+ */
+export function handleMessageReaction(queryClient: QueryClient, payload: MessageReactionEvent) {
+  const { conversationId } = payload;
+  if (!conversationId) return;
 
-export function handleMessageReaction(
-  queryClient: QueryClient,
-  payload: MessageReactionEvent
-) {
-  const { conversationId, messageId, userId, emoji, added } = payload;
-  const key = QUERY_KEYS.messages.history(conversationId);
-
-  if (added && emoji) {
-    // Add — we can update the cache precisely
-    queryClient.setQueryData<InfiniteMessages>(key, (old) => {
-      if (!old) return old;
-      return {
-        ...old,
-        pages: old.pages.map((p) => ({
-          ...p,
-          items: p.items.map((m) => {
-            if (m.id !== messageId) return m;
-
-            const reactions = { ...(m.reactions || {}) };
-            const current = reactions[emoji];
-            reactions[emoji] = current
-              ? { count: current.count + 1, mine: current.mine }
-              : { count: 1, mine: false };
-
-            return { ...m, reactions };
-          }),
-        })),
-      };
-    });
-    return;
-  }
-
-  // Removal — the backend doesn't tell us which emoji was removed.
-  // The local optimist already removed the caller's own reaction.
-  // For any other removal, invalidate to force a refetch.
-  void userId;
-  queryClient.invalidateQueries({ queryKey: key });
+  queryClient.invalidateQueries({
+    queryKey: QUERY_KEYS.messages.history(conversationId),
+  });
 }
 
 export function handleMessageRead(queryClient: QueryClient, payload: MessageReadEvent) {
@@ -186,10 +149,7 @@ export function handleMessageRead(queryClient: QueryClient, payload: MessageRead
 // Conversations
 // ---------------------------------------------------------------------------
 
-export function handleConversationNew(
-  queryClient: QueryClient,
-  _payload: ConversationNewEvent
-) {
+export function handleConversationNew(queryClient: QueryClient, _payload: ConversationNewEvent) {
   queryClient.invalidateQueries({ queryKey: QUERY_KEYS.conversations.all });
 }
 
@@ -200,9 +160,7 @@ export function handleConversationUpdated(
   const { conversationId, changes } = payload;
   const key = QUERY_KEYS.conversations.detail(conversationId);
 
-  queryClient.setQueryData<Conversation>(key, (old) =>
-    old ? { ...old, ...changes } : old
-  );
+  queryClient.setQueryData<Conversation>(key, (old) => (old ? { ...old, ...changes } : old));
 
   queryClient.invalidateQueries({ queryKey: QUERY_KEYS.conversations.all });
 }
@@ -211,10 +169,7 @@ export function handleConversationUpdated(
 // Notifications
 // ---------------------------------------------------------------------------
 
-export function handleNotificationNew(
-  queryClient: QueryClient,
-  _payload: NotificationNewEvent
-) {
+export function handleNotificationNew(queryClient: QueryClient, _payload: NotificationNewEvent) {
   queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notifications.all });
 }
 

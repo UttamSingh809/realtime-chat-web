@@ -25,14 +25,22 @@ interface InfiniteMessages {
   pageParams: unknown[];
 }
 
-function applyAddReaction(
-  message: Message,
-  emoji: string,
-  myUserId: string
-): Message {
+/**
+ * Apply a reaction by me to a message.
+ *
+ * Rule: one reaction per user. So this removes any existing `mine` reaction,
+ * then adds the new emoji. Idempotent — clicking the same emoji I already
+ * have is a no-op.
+ */
+function applyAddReaction(message: Message, emoji: string): Message {
   const reactions = { ...(message.reactions || {}) };
 
-  // 1. Remove any existing reaction by me (one-per-user rule)
+  // If this emoji is already my reaction, do nothing.
+  if (reactions[emoji]?.mine) {
+    return message;
+  }
+
+  // Remove any existing reaction marked as mine
   for (const key of Object.keys(reactions)) {
     const entry = reactions[key]!;
     if (entry.mine) {
@@ -44,7 +52,7 @@ function applyAddReaction(
     }
   }
 
-  // 2. Add the new emoji
+  // Add the new emoji
   const existing = reactions[emoji];
   if (existing) {
     reactions[emoji] = { count: existing.count + 1, mine: true };
@@ -52,7 +60,6 @@ function applyAddReaction(
     reactions[emoji] = { count: 1, mine: true };
   }
 
-  void myUserId; // reserved for future per-user tracking
   return { ...message, reactions };
 }
 
@@ -63,11 +70,12 @@ export function useAddReaction(conversationId: string | undefined) {
     mutationFn: ({ messageId, emoji }: Variables) =>
       messagesApi.addReaction(messageId, emoji),
 
-    onMutate: async ({ messageId, conversationId, emoji }) => {
+    onMutate: async ({ messageId, conversationId: cid, emoji }) => {
+      void conversationId; // outer param is unused; use cid from variables
       const myUser = useAuthStore.getState().user;
       if (!myUser) return {};
 
-      const key = QUERY_KEYS.messages.history(conversationId);
+      const key = QUERY_KEYS.messages.history(cid);
       await queryClient.cancelQueries({ queryKey: key });
 
       const previous = queryClient.getQueryData<InfiniteMessages>(key);
@@ -79,7 +87,7 @@ export function useAddReaction(conversationId: string | undefined) {
           pages: old.pages.map((page) => ({
             ...page,
             items: page.items.map((m) =>
-              m.id === messageId ? applyAddReaction(m, emoji, myUser.id) : m
+              m.id === messageId ? applyAddReaction(m, emoji) : m
             ),
           })),
         };
@@ -96,13 +104,7 @@ export function useAddReaction(conversationId: string | undefined) {
       toast.error(apiError.message || 'Failed to add reaction');
     },
 
-    onSettled: () => {
-      if (!conversationId) return;
-      // The socket broadcast will also update the cache — the invalidate
-      // here just ensures consistency in case we missed it.
-      queryClient.invalidateQueries({
-        queryKey: QUERY_KEYS.messages.history(conversationId),
-      });
-    },
+    // NOTE: No onSettled invalidate. The socket echo handles cross-user
+    // sync; for me, the optimistic update above is authoritative.
   });
 }

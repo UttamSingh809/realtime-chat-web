@@ -66,6 +66,8 @@ export interface MessageReactionEvent {
   userId: string;
   emoji: string | null;
   added: boolean;
+  /** For additions that replace a previous reaction, the emoji being removed. */
+  removedEmoji?: string | null;
 }
 
 export interface MessageReadEvent {

@@ -42,8 +42,9 @@ export function useRemoveReaction(conversationId: string | undefined) {
     mutationFn: ({ messageId }: Variables) =>
       messagesApi.removeReaction(messageId),
 
-    onMutate: async ({ messageId, conversationId }) => {
-      const key = QUERY_KEYS.messages.history(conversationId);
+    onMutate: async ({ messageId, conversationId: cid }) => {
+      void conversationId;
+      const key = QUERY_KEYS.messages.history(cid);
       await queryClient.cancelQueries({ queryKey: key });
 
       const previous = queryClient.getQueryData<InfiniteMessages>(key);
@@ -72,11 +73,6 @@ export function useRemoveReaction(conversationId: string | undefined) {
       toast.error(apiError.message || 'Failed to remove reaction');
     },
 
-    onSettled: () => {
-      if (!conversationId) return;
-      queryClient.invalidateQueries({
-        queryKey: QUERY_KEYS.messages.history(conversationId),
-      });
-    },
+    // NOTE: No onSettled invalidate — see useAddReaction for reasoning.
   });
 }
