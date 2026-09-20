@@ -140,7 +140,9 @@ export function MessageBubble({
         <div
           className={cn(
             'relative max-w-[75%] rounded-2xl px-3.5 py-2 text-sm shadow-sm',
-            isMine ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground',
+            isMine
+              ? 'bg-bubbleSent text-bubbleSent-foreground'
+              : 'bg-bubbleReceived text-bubbleReceived-foreground',
             isLastInGroup ? (isMine ? 'rounded-br-sm' : 'rounded-bl-sm') : ''
           )}
         >
@@ -149,8 +151,8 @@ export function MessageBubble({
               className={cn(
                 'mb-1.5 rounded-md border-l-2 px-2 py-1 text-xs',
                 isMine
-                  ? 'border-primary-foreground/60 bg-primary-foreground/10'
-                  : 'border-primary bg-primary/5'
+                  ? 'border-bubbleSent-foreground/60 bg-bubbleSent-foreground/10'
+                  : 'border-bubbleReceived-foreground/60 bg-bubbleReceived-foreground/10'
               )}
             >
               <p className="truncate font-medium">
@@ -207,7 +209,9 @@ export function MessageBubble({
           <div
             className={cn(
               'mt-0.5 flex items-center gap-1.5 text-[10px]',
-              isMine ? 'justify-end text-primary-foreground/70' : 'text-muted-foreground'
+              isMine
+                ? 'justify-end text-bubbleSent-foreground/70'
+                : 'text-bubbleReceived-foreground/70'
             )}
           >
             {message.isEdited && <span>edited</span>}

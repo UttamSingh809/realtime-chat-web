@@ -2,7 +2,7 @@
  * SidebarHeader — brand + new-chat + notifications + collapse toggle.
  */
 
-import { MessageSquarePlus, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { MessageSquarePlus, PanelLeftClose, PanelLeft, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useUIStore } from '@/stores/ui.store';
@@ -68,20 +68,37 @@ export function SidebarHeader({ onCreateConversation }: Props) {
 
         <NotificationBell />
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleSidebar}
-              aria-label="Collapse sidebar"
-            >
-              <PanelLeftClose className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Collapse</TooltipContent>
-        </Tooltip>
+        {/* Desktop: collapse toggle. Mobile: close drawer. */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleSidebar}
+          aria-label="Collapse sidebar"
+          className="hidden md:flex"
+        >
+          <PanelLeftClose className="h-4 w-4" />
+        </Button>
+
+        <MobileCloseButton />
       </div>
     </div>
+  );
+}
+/**
+ * Close button for the mobile drawer. Only visible on mobile.
+ * Calls `closeMobileSidebar()` on the UI store.
+ */
+function MobileCloseButton() {
+  const closeMobileSidebar = useUIStore((s) => s.closeMobileSidebar);
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={closeMobileSidebar}
+      aria-label="Close sidebar"
+      className="flex md:hidden"
+    >
+      <X className="h-4 w-4" />
+    </Button>
   );
 }

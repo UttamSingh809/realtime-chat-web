@@ -26,7 +26,7 @@ export function MessageStatusIcon({ status, isMine, className }: Props) {
     );
   }
 
-  const baseColor = isMine ? 'text-primary-foreground' : 'text-muted-foreground';
+  const baseColor = isMine ? 'text-bubbleSent-foreground' : 'text-muted-foreground';
 
   if (status === 'sent') {
     return (
@@ -42,7 +42,7 @@ export function MessageStatusIcon({ status, isMine, className }: Props) {
     return (
       <CheckCheck
         // DEBUG: orange
-        className={cn('h-3.5 w-3.5', isMine ? 'text-orange-500' : baseColor, className)}
+        className={cn('h-3.5 w-3.5', isMine ? baseColor : baseColor, className)}
         aria-label="Delivered"
       />
     );
@@ -52,7 +52,7 @@ export function MessageStatusIcon({ status, isMine, className }: Props) {
   return (
     <CheckCheck
       // DEBUG: black
-      className={cn('h-3.5 w-3.5', isMine ? 'text-black' : 'text-primary', className)}
+      className={cn('h-3.5 w-3.5', isMine ? 'text-emerald-200' : 'text-primary', className)}
       aria-label="Read"
     />
   );

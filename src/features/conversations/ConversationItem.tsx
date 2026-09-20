@@ -6,6 +6,7 @@
 import { NavLink } from 'react-router-dom';
 import { BellOff, Pin } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useUIStore } from '@/stores/ui.store';
 import { formatRelativeShort } from '@/lib/format';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/features/users';
@@ -24,6 +25,7 @@ interface Props {
 
 export function ConversationItem({ conversation, viewerId }: Props) {
   const name = conversationDisplayName(conversation, viewerId);
+  const closeMobileSidebar = useUIStore((s) => s.closeMobileSidebar);
   const preview = conversationPreview(conversation);
   const avatarUrl = conversationAvatarUrl(conversation, viewerId);
 
@@ -59,6 +61,7 @@ export function ConversationItem({ conversation, viewerId }: Props) {
   return (
     <NavLink
       to={`/app/chat/${conversation.id}`}
+      onClick={closeMobileSidebar}
       className={({ isActive }) =>
         cn(
           'group relative flex items-center gap-3 px-3 py-2.5 transition-colors',

@@ -4,56 +4,89 @@
 
 @layer base {
     :root {
-        --background: 0 0% 100%;
-        --foreground: 240 10% 3.9%;
+        --background: 210 22% 96%;
+        --foreground: 220 13% 10%;
+
         --card: 0 0% 100%;
-        --card-foreground: 240 10% 3.9%;
+        --card-foreground: 220 13% 10%;
+
         --popover: 0 0% 100%;
-        --popover-foreground: 240 10% 3.9%;
-        --primary: 221 83% 53%;
-        --primary-foreground: 210 40% 98%;
-        --secondary: 240 4.8% 95.9%;
-        --secondary-foreground: 240 5.9% 10%;
-        --muted: 240 4.8% 95.9%;
-        --muted-foreground: 240 3.8% 46.1%;
-        --accent: 240 4.8% 95.9%;
-        --accent-foreground: 240 5.9% 10%;
-        --destructive: 0 84.2% 60.2%;
+        --popover-foreground: 220 13% 10%;
+
+        --primary: 161 94% 30%;
+        --primary-foreground: 0 0% 100%;
+
+        --secondary: 210 20% 94%;
+        --secondary-foreground: 220 13% 10%;
+
+        --muted: 210 20% 94%;
+        --muted-foreground: 215 16% 47%;
+
+        --accent: 210 20% 94%;
+        --accent-foreground: 220 13% 10%;
+
+        --destructive: 0 84% 60%;
         --destructive-foreground: 0 0% 98%;
+
         --success: 142 71% 45%;
         --success-foreground: 0 0% 98%;
+
         --warning: 38 92% 50%;
         --warning-foreground: 0 0% 9%;
-        --border: 240 5.9% 90%;
-        --input: 240 5.9% 90%;
-        --ring: 221 83% 53%;
+
+        --border: 214 20% 90%;
+        --input: 214 20% 90%;
+        --ring: 161 94% 30%;
+
         --radius: 0.5rem;
+
+        --bubble-sent: 161 94% 30%;
+        --bubble-sent-foreground: 0 0% 100%;
+        --bubble-received: 0 0% 100%;
+        --bubble-received-foreground: 220 13% 10%;
+        --chat-background: 210 20% 94%;
     }
 
     .dark {
-        --background: 240 10% 3.9%;
-        --foreground: 0 0% 98%;
-        --card: 240 10% 3.9%;
-        --card-foreground: 0 0% 98%;
-        --popover: 240 10% 3.9%;
-        --popover-foreground: 0 0% 98%;
-        --primary: 221 83% 53%;
+        --background: 222 30% 9%;
+        --foreground: 210 40% 98%;
+
+        --card: 217 33% 12%;
+        --card-foreground: 210 40% 98%;
+
+        --popover: 217 33% 12%;
+        --popover-foreground: 210 40% 98%;
+
+        --primary: 160 84% 39%;
         --primary-foreground: 0 0% 100%;
-        --secondary: 240 3.7% 15.9%;
-        --secondary-foreground: 0 0% 98%;
-        --muted: 240 3.7% 15.9%;
-        --muted-foreground: 240 5% 64.9%;
-        --accent: 240 3.7% 15.9%;
-        --accent-foreground: 0 0% 98%;
-        --destructive: 0 62.8% 50.6%;
+
+        --secondary: 217 33% 16%;
+        --secondary-foreground: 210 40% 98%;
+
+        --muted: 217 33% 16%;
+        --muted-foreground: 215 20% 65%;
+
+        --accent: 217 33% 16%;
+        --accent-foreground: 210 40% 98%;
+
+        --destructive: 0 63% 51%;
         --destructive-foreground: 0 0% 98%;
-        --success: 142 71% 45%;
+
+        --success: 160 84% 39%;
         --success-foreground: 0 0% 100%;
+
         --warning: 38 92% 50%;
         --warning-foreground: 0 0% 9%;
-        --border: 240 3.7% 15.9%;
-        --input: 240 3.7% 15.9%;
-        --ring: 221 83% 53%;
+
+        --border: 217 33% 17%;
+        --input: 217 33% 17%;
+        --ring: 160 84% 39%;
+
+        --bubble-sent: 163 94% 24%;
+        --bubble-sent-foreground: 0 0% 100%;
+        --bubble-received: 217 33% 16%;
+        --bubble-received-foreground: 210 40% 98%;
+        --chat-background: 222 35% 7%;
     }
 }
 
@@ -94,5 +127,47 @@
 
     :focus-visible {
         @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+    }
+}
+
+@layer utilities {
+    .bg-chat-dots {
+        background-color: hsl(var(--chat-background));
+        background-image: radial-gradient(hsl(var(--foreground) / 0.10) 1px,
+                transparent 1.2px);
+        background-size: 18px 18px;
+    }
+
+    .bg-chat-stripes {
+        background-color: hsl(var(--chat-background));
+        background-image: repeating-linear-gradient(-45deg,
+                hsl(var(--foreground) / 0.05) 0,
+                hsl(var(--foreground) / 0.05) 1px,
+                transparent 1px,
+                transparent 14px);
+    }
+
+    .bg-chat-crosshatch {
+        background-color: hsl(var(--chat-background));
+        background-image:
+            linear-gradient(hsl(var(--foreground) / 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, hsl(var(--foreground) / 0.05) 1px, transparent 1px);
+        background-size: 24px 24px, 24px 24px;
+    }
+
+    .bg-chat-glow {
+        background-color: hsl(var(--chat-background));
+        background-image:
+            radial-gradient(ellipse 100% 60% at 50% 0%,
+                hsl(var(--primary) / 0.10) 0%,
+                transparent 70%),
+            radial-gradient(ellipse 80% 50% at 50% 100%,
+                hsl(var(--primary) / 0.05) 0%,
+                transparent 70%);
+    }
+
+    .bg-chat-noise {
+        background-color: hsl(var(--chat-background));
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     }
 }

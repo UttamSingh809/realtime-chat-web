@@ -173,6 +173,7 @@ export default function ChatConversationPage() {
       {/* Message area — takes remaining space, scrolls internally */}
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
         {loadingMessages && messages.length === 0 ? (
+          <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-chat-dots">
           <MessageList
             messages={[]}
             conversation={conversation}
@@ -185,6 +186,7 @@ export default function ChatConversationPage() {
             onDeleteForEveryone={handleDeleteForEveryone}
             onReact={handleReact}
           />
+          </div>
         ) : messages.length === 0 ? (
           <MessageEmptyState conversationName={conversationName} />
         ) : (

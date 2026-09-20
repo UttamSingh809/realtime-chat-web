@@ -56,6 +56,15 @@ export default {
                     DEFAULT: 'hsl(var(--warning))',
                     foreground: 'hsl(var(--warning-foreground))',
                 },
+                bubbleSent: {
+                    DEFAULT: 'hsl(var(--bubble-sent))',
+                    foreground: 'hsl(var(--bubble-sent-foreground))',
+                },
+                bubbleReceived: {
+                    DEFAULT: 'hsl(var(--bubble-received))',
+                    foreground: 'hsl(var(--bubble-received-foreground))',
+                },
+                chatBackground: 'hsl(var(--chat-background))',
             },
             borderRadius: {
                 lg: 'var(--radius)',

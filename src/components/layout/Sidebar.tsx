@@ -19,17 +19,28 @@ import { SidebarHeader } from './SidebarHeader';
 import { SidebarSearch } from './SidebarSearch';
 import { SidebarFooter } from './SidebarFooter';
 
-export function Sidebar() {
+interface Props {
+  /**
+   * When true, the sidebar always renders expanded (ignores the persisted
+   * collapse state). Used by the mobile drawer, where the collapsed state
+   * doesn't make sense.
+   */
+  forceExpanded?: boolean;
+}
+
+export function Sidebar({ forceExpanded = false }: Props) {
   const [query, setQuery] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [newChatOpen, setNewChatOpen] = useState(false);
-  const collapsed = useUIStore((s) => s.sidebarCollapsed);
+  const persistedCollapsed = useUIStore((s) => s.sidebarCollapsed);
+
+  const collapsed = forceExpanded ? false : persistedCollapsed;
 
   return (
     <aside
       className={cn(
         'flex h-full flex-col border-r bg-card transition-[width] duration-200',
-        collapsed ? 'w-[68px]' : 'w-[320px]'
+        forceExpanded ? 'w-full' : collapsed ? 'w-[60px]' : 'w-[320px] xl:w-[360px]'
       )}
     >
       <SidebarHeader onCreateConversation={() => setNewChatOpen(true)} />
