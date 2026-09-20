@@ -5,6 +5,7 @@
  *   - Smiley trigger button sits OUTSIDE the bubble, at the outer edge
  *   - Reaction picker pops ABOVE the bubble on click (absolute, no layout shift)
  *   - Reactions render as pills just below the bubble
+ *   - Attachments render inside the bubble via AttachmentGrid
  */
 
 import { useState, useMemo } from 'react';
@@ -13,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { formatMessageTime } from '@/lib/format';
+import { AttachmentGrid } from '@/features/files';
 import type { Conversation, Message } from '@/types';
 import { MessageActionsMenu } from './MessageActionsMenu';
 import { EmojiPicker } from './EmojiPicker';
@@ -69,6 +71,9 @@ export function MessageBubble({
     [isMine, isGroup, message, conversation]
   );
 
+  const hasAttachments = message.attachments && message.attachments.length > 0;
+  const hasContent = !!message.content && message.content.trim().length > 0;
+
   const handleSave = () => {
     const trimmed = draft.trim();
     if (trimmed && trimmed !== message.content) onEdit(message.id, trimmed);
@@ -93,7 +98,6 @@ export function MessageBubble({
 
   const canReact = !message.isDeleted && !editing;
 
-  // The smiley trigger — sits OUTSIDE the bubble on the outer edge.
   const smiley = canReact ? (
     <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
       <PopoverTrigger asChild>
@@ -115,6 +119,7 @@ export function MessageBubble({
         side="top"
         align={isMine ? 'end' : 'start'}
         sideOffset={8}
+        collisionPadding={16}
         className="w-auto p-0"
       >
         <ReactionBar onSelect={handleReact} />
@@ -129,23 +134,16 @@ export function MessageBubble({
         isMine ? 'items-end' : 'items-start'
       )}
     >
-      {/* Bubble row: [smiley] [bubble] [actions-menu] for received
-                      [actions-menu] [bubble] [smiley] for sent */}
       <div className={cn('flex w-full items-end gap-1', isMine ? 'flex-row-reverse' : 'flex-row')}>
-        {/* Smiley on the OUTER edge */}
         <div className="flex h-full items-end pb-1.5">{smiley}</div>
 
-        {/* Bubble */}
         <div
           className={cn(
             'relative max-w-[75%] rounded-2xl px-3.5 py-2 text-sm shadow-sm',
-            isMine
-  ? 'bg-emerald-600 text-white'   // green bubbles like WhatsApp/iMessage
-  : 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100',
+            isMine ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground',
             isLastInGroup ? (isMine ? 'rounded-br-sm' : 'rounded-bl-sm') : ''
           )}
         >
-          {/* Reply preview */}
           {message.replyTo && (
             <div
               className={cn(
@@ -166,7 +164,6 @@ export function MessageBubble({
             </div>
           )}
 
-          {/* Content / edit mode */}
           {editing ? (
             <div className="space-y-1.5">
               <Textarea
@@ -195,10 +192,18 @@ export function MessageBubble({
           ) : message.isDeleted ? (
             <p className="italic opacity-70">This message was deleted</p>
           ) : (
-            <p className="whitespace-pre-wrap break-words">{message.content}</p>
+            <>
+              {hasAttachments && (
+                <AttachmentGrid attachments={message.attachments} isMine={isMine} />
+              )}
+              {hasContent && (
+                <p className={cn('whitespace-pre-wrap break-words', hasAttachments && 'mt-1.5')}>
+                  {message.content}
+                </p>
+              )}
+            </>
           )}
 
-          {/* Footer: edited, time, status icon */}
           <div
             className={cn(
               'mt-0.5 flex items-center gap-1.5 text-[10px]',
@@ -207,14 +212,11 @@ export function MessageBubble({
           >
             {message.isEdited && <span>edited</span>}
             <span>{formatMessageTime(message.createdAt)}</span>
-
             {isMine && !message.isDeleted && <MessageStatusIcon status={status} isMine={isMine} />}
-
             {message._optimistic && <Loader2 className="h-3 w-3 animate-spin" />}
           </div>
         </div>
 
-        {/* Actions menu — on the INNER edge (opposite of smiley) */}
         {!message.isDeleted && !editing && (
           <div className="flex h-full items-end pb-1.5">
             <MessageActionsMenu
@@ -228,7 +230,6 @@ export function MessageBubble({
         )}
       </div>
 
-      {/* Read-by info (groups only, my messages only) */}
       {isMine && isGroup && readers.length > 0 && (
         <ReadByPopover
           readers={readers}
@@ -239,20 +240,13 @@ export function MessageBubble({
         </ReadByPopover>
       )}
 
-      {/* Reactions below the bubble (hidden on tombstones) */}
-      {!message.isDeleted && (
-        <MessageReactions
-          reactions={reactionGroups}
-          onToggle={handleReact}
-          isMine={isMine}
-        />
-      )}
+      <MessageReactions reactions={reactionGroups} onToggle={handleReact} isMine={isMine} />
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Reaction bar — the quick emojis + "more" trigger
+// Reaction bar
 // ---------------------------------------------------------------------------
 
 interface ReactionBarProps {
