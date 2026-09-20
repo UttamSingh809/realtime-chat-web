@@ -1,21 +1,19 @@
 /**
- * MessageStatusIcon — a small tick icon showing delivery state.
+ * MessageStatusIcon — delivery/read indicator for my own messages.
  */
 
-import { Check, Clock, Loader2 } from 'lucide-react';
+import { Check, CheckCheck, Clock, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { MessageDeliveryStatus } from './messageStatus';
 
 interface Props {
   status: MessageDeliveryStatus;
-  /** Whether the parent bubble is on the "mine" (primary) side. */
   isMine: boolean;
   className?: string;
 }
 
 export function MessageStatusIcon({ status, isMine, className }: Props) {
   if (status === 'unknown') {
-    // Optimistic message still sending — show a tiny spinner
     return (
       <Loader2
         className={cn(
@@ -28,32 +26,38 @@ export function MessageStatusIcon({ status, isMine, className }: Props) {
     );
   }
 
-  // Single tick for sent, double tick for delivered / read
-  const tickClass = cn(
-    'h-3.5 w-3.5',
-    isMine ? 'text-primary-foreground/70' : 'text-muted-foreground',
-    // Blue when read
-    status === 'read' && isMine && 'text-sky-300',
-    className
-  );
+  const baseColor = isMine ? 'text-primary-foreground' : 'text-muted-foreground';
 
   if (status === 'sent') {
-    return <Check className={tickClass} aria-label="Sent" />;
+    return (
+      <Check
+        // DEBUG: yellow
+        className={cn('h-3.5 w-3.5', isMine ? 'text-yellow-500' : baseColor, className)}
+        aria-label="Sent"
+      />
+    );
   }
 
-  // Delivered or read — double tick
+  if (status === 'delivered') {
+    return (
+      <CheckCheck
+        // DEBUG: orange
+        className={cn('h-3.5 w-3.5', isMine ? 'text-orange-500' : baseColor, className)}
+        aria-label="Delivered"
+      />
+    );
+  }
+
+  // read
   return (
-    <span className="relative inline-flex" aria-label={status === 'read' ? 'Read' : 'Delivered'}>
-      <Check className={cn(tickClass, 'relative z-10')} />
-      <Check className={cn(tickClass, '-ml-1.5')} />
-    </span>
+    <CheckCheck
+      // DEBUG: black
+      className={cn('h-3.5 w-3.5', isMine ? 'text-black' : 'text-primary', className)}
+      aria-label="Read"
+    />
   );
 }
 
-/**
- * Compact version used inside the bubble footer.
- * Falls back to a clock icon for very old "sent" messages.
- */
 export function MessageStatusCompact({
   status,
   isMine,

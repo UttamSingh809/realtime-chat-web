@@ -139,7 +139,9 @@ export function MessageBubble({
         <div
           className={cn(
             'relative max-w-[75%] rounded-2xl px-3.5 py-2 text-sm shadow-sm',
-            isMine ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground',
+            isMine
+  ? 'bg-emerald-600 text-white'   // green bubbles like WhatsApp/iMessage
+  : 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100',
             isLastInGroup ? (isMine ? 'rounded-br-sm' : 'rounded-bl-sm') : ''
           )}
         >

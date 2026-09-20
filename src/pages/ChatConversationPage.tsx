@@ -54,7 +54,7 @@ export default function ChatConversationPage() {
 
   const messages = useMemo(() => flattenMessages(pages?.pages), [pages]);
 
-  useAutoDeliver(id, messages);
+  useAutoDeliver(messages);
 
   const conversationName = useMemo(() => {
     if (!conversation || !user) return 'Conversation';

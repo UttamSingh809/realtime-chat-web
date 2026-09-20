@@ -49,6 +49,13 @@ export interface MessageNewEvent {
   conversationId: string;
 }
 
+export interface MessageDeliveredEvent {
+  conversationId: string;
+  messageId: string;
+  userId: string;
+  deliveredAt: string;
+}
+
 export interface MessageEditedEvent {
   message: Message;
 }
@@ -117,6 +124,7 @@ export interface SocketErrorEvent {
 export interface ServerToClientEvents {
   connected: (payload: ConnectedEvent) => void;
   'message:new': (payload: MessageNewEvent) => void;
+  'message:delivered': (payload: MessageDeliveredEvent) => void;
   'message:edited': (payload: MessageEditedEvent) => void;
   'message:deleted': (payload: MessageDeletedEvent) => void;
   'message:reaction': (payload: MessageReactionEvent) => void;

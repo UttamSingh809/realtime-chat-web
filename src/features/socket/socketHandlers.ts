@@ -19,6 +19,7 @@ import type {
   ConversationUpdatedEvent,
   NotificationNewEvent,
   UserStatusEvent,
+  MessageDeliveredEvent
 } from '@/types';
 
 interface InfiniteMessages {
@@ -86,21 +87,21 @@ export function handleMessageDeleted(queryClient: QueryClient, payload: MessageD
         ...p,
         items: deletedForEveryone
           ? p.items.map((m) =>
-              m.id === messageId
-                ? {
-                    ...m,
-                    isDeleted: true,
-                    content: '',
-                    attachments: [],
-                    // Wipe every piece of state that no longer makes sense
-                    // on a tombstone.
-                    reactions: {},
-                    isPinned: false,
-                    isStarred: false,
-                    mentions: [],
-                  }
-                : m
-            )
+            m.id === messageId
+              ? {
+                ...m,
+                isDeleted: true,
+                content: '',
+                attachments: [],
+                // Wipe every piece of state that no longer makes sense
+                // on a tombstone.
+                reactions: {},
+                isPinned: false,
+                isStarred: false,
+                mentions: [],
+              }
+              : m
+          )
           : p.items.filter((m) => m.id !== messageId),
       })),
     };
@@ -135,19 +136,39 @@ export function handleMessageRead(queryClient: QueryClient, payload: MessageRead
   queryClient.setQueryData<InfiniteMessages>(key, (old) => {
     if (!old) return old;
 
-    // Find the index of upToMessageId in the flattened list
-    // (or if null, apply to all messages)
-    const allIds = old.pages.flatMap((p) => p.items.map((m) => m.id));
-    const cutoffIndex = upToMessageId ? allIds.indexOf(upToMessageId) : allIds.length - 1;
-    const relevantIds = new Set(allIds.slice(0, cutoffIndex + 1));
+    // Find the timestamp of the cutoff message (if any).
+    // Compare by createdAt instead of array index — cache pages are
+    // ordered newest-batch-first, not a clean oldest-to-newest list.
+    let cutoffTimestamp: number | null = null;
+    if (upToMessageId) {
+      for (const page of old.pages) {
+        const target = page.items.find((m) => m.id === upToMessageId);
+        if (target) {
+          cutoffTimestamp = new Date(target.createdAt).getTime();
+          break;
+        }
+      }
+      // If the cutoff message isn't in our cache, be conservative and
+      // apply the read receipt to all cached messages from this user.
+      // (This can happen if the sender has scrolled and the target is
+      // outside the loaded range.)
+    }
 
     return {
       ...old,
-      pages: old.pages.map((p) => ({
-        ...p,
-        items: p.items.map((m) => {
-          if (!relevantIds.has(m.id)) return m;
+      pages: old.pages.map((page) => ({
+        ...page,
+        items: page.items.map((m) => {
+          // If we know the cutoff, only mark messages up to it.
+          if (cutoffTimestamp !== null) {
+            const t = new Date(m.createdAt).getTime();
+            if (t > cutoffTimestamp) return m;
+          }
+
+          // Don't double-add the same reader
           if (m.readBy.some((r) => r.userId === userId)) return m;
+
+          // Add the read receipt
           return {
             ...m,
             readBy: [...m.readBy, { userId, readAt }],
@@ -250,6 +271,29 @@ export function handleUserStatus(queryClient: QueryClient, payload: UserStatusEv
   });
 }
 
+export function handleMessageDelivered(queryClient: QueryClient, payload: MessageDeliveredEvent) {
+  const { conversationId, messageId, userId, deliveredAt } = payload;
+  const key = QUERY_KEYS.messages.history(conversationId);
+
+  queryClient.setQueryData<InfiniteMessages>(key, (old) => {
+    if (!old) return old;
+    return {
+      ...old,
+      pages: old.pages.map((page) => ({
+        ...page,
+        items: page.items.map((m) => {
+          if (m.id !== messageId) return m;
+          if (m.deliveredTo.some((d) => d.userId === userId)) return m;
+          return {
+            ...m,
+            deliveredTo: [...m.deliveredTo, { userId, deliveredAt }],
+          };
+        }),
+      })),
+    };
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Re-export for the bridge
 // ---------------------------------------------------------------------------
@@ -264,6 +308,7 @@ export const handlers = {
   handleConversationUpdated,
   handleNotificationNew,
   handleUserStatus,
+  handleMessageDelivered,
 };
 
 // Keep TS happy about unused imports in some builds

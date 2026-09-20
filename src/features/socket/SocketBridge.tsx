@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { useSocketEvent } from './useSocketEvent';
 import { handlers } from './socketHandlers';
 import { usePresenceStore } from '@/features/presence';
+import { DeliveryBridge } from '@/features/messages/DeliveryBridge';
 
 export function SocketBridge() {
   const queryClient = useQueryClient();
@@ -27,6 +28,10 @@ export function SocketBridge() {
 
   useSocketEvent('message:new', (payload) => {
     handlers.handleMessageNew(queryClient, payload);
+  });
+
+  useSocketEvent('message:delivered', (payload) => {
+    handlers.handleMessageDelivered(queryClient, payload);
   });
 
   useSocketEvent('message:edited', (payload) => {
@@ -111,5 +116,10 @@ export function SocketBridge() {
     }
   });
 
-  return null;
+  return (
+    <>
+      <DeliveryBridge />
+      {/* existing handlers */}
+    </>
+  );
 }

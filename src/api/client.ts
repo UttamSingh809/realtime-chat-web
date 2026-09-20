@@ -3,9 +3,8 @@
  *
  * Responsibilities:
  *   - Base URL from env
- *   - Bearer token injection
+ *   - Bearer token injection on every request
  *   - Auto-refresh on 401 TOKEN_EXPIRED (single-flight)
- *   - Request queue for concurrent 401s
  *   - Error normalization to ApiError
  */
 
@@ -26,7 +25,7 @@ import type { ApiError, ApiErrorBody, AuthTokens } from '@/types';
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_URL,
   timeout: 20000,
-  withCredentials: true, // send/receive HttpOnly refresh cookie
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -34,20 +33,15 @@ export const apiClient: AxiosInstance = axios.create({
 });
 
 // ---------------------------------------------------------------------------
-// Refresh-in-flight coordination (single-flight)
+// Refresh coordination
 // ---------------------------------------------------------------------------
 
 let refreshPromise: Promise<AuthTokens> | null = null;
 
-/**
- * Call the backend's refresh endpoint using the HttpOnly cookie (or fallback
- * token from localStorage if the cookie path fails).
- */
 async function performRefresh(): Promise<AuthTokens> {
-  // Use a fresh axios instance to avoid the interceptor recursion.
   const { data } = await axios.post<{ data: AuthTokens }>(
     `${API_URL}/auth/refresh`,
-    {}, // body empty — refresh token comes from cookie
+    {},
     {
       withCredentials: true,
       timeout: 15000,
@@ -56,9 +50,6 @@ async function performRefresh(): Promise<AuthTokens> {
   return data.data;
 }
 
-/**
- * Single-flight refresh. Concurrent 401s share the same promise.
- */
 function getRefreshedTokens(): Promise<AuthTokens> {
   if (!refreshPromise) {
     refreshPromise = performRefresh()
@@ -80,9 +71,39 @@ function getRefreshedTokens(): Promise<AuthTokens> {
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = getAccessToken();
+
     if (token) {
-      config.headers.set('Authorization', `Bearer ${token}`);
+      // Use direct header assignment; AxiosHeaders accepts both .set() and
+      // direct assignment, but assignment is more portable across versions.
+      if (config.headers) {
+        // AxiosHeaders instances support .set()
+        if (typeof (config.headers as { set?: unknown }).set === 'function') {
+          (config.headers as { set: (k: string, v: string) => void }).set(
+            'Authorization',
+            `Bearer ${token}`
+          );
+        } else {
+          // Fallback for plain objects
+          (config.headers as Record<string, string>).Authorization = `Bearer ${token}`;
+        }
+      } else {
+        config.headers = { Authorization: `Bearer ${token}` } as never;
+      }
+
+      // Debug: log what we're attaching
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.debug(
+          `[api →] ${config.method?.toUpperCase()} ${config.url}`,
+          'auth:',
+          `Bearer ${token.slice(0, 12)}...`
+        );
+      }
+    } else {
+      // eslint-disable-next-line no-console
+      console.warn(`[api →] ${config.method?.toUpperCase()} ${config.url} — NO TOKEN`);
     }
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -92,9 +113,6 @@ apiClient.interceptors.request.use(
 // Response interceptor — handle 401 and normalize errors
 // ---------------------------------------------------------------------------
 
-/**
- * Extend request config with a flag so we don't infinite-loop on retried 401s.
- */
 interface RetryableConfig extends AxiosRequestConfig {
   _retry?: boolean;
 }
@@ -106,9 +124,6 @@ apiClient.interceptors.response.use(
     const status = error.response?.status;
     const code = error.response?.data?.code;
 
-    // -----------------------------------------------------------------
-    // Handle 401 → try to refresh once
-    // -----------------------------------------------------------------
     const isAuthEndpoint =
       originalRequest?.url?.includes('/auth/refresh') ||
       originalRequest?.url?.includes('/auth/login') ||
@@ -132,16 +147,12 @@ apiClient.interceptors.response.use(
         };
         return apiClient(originalRequest);
       } catch {
-        // Refresh failed — session is dead. Clear auth and reject.
         useAuthStore.getState().clearAuth();
         window.dispatchEvent(new CustomEvent('auth:logout'));
         return Promise.reject(normalizeError(error));
       }
     }
 
-    // -----------------------------------------------------------------
-    // If the refresh attempt itself failed → log out hard
-    // -----------------------------------------------------------------
     if (status === 401 && isAuthEndpoint && originalRequest?.url?.includes('/auth/refresh')) {
       useAuthStore.getState().clearAuth();
       window.dispatchEvent(new CustomEvent('auth:logout'));
@@ -155,15 +166,9 @@ apiClient.interceptors.response.use(
 // Error normalization
 // ---------------------------------------------------------------------------
 
-/**
- * Turn any thrown error into a consistent ApiError object.
- * This is what hooks and components will catch.
- */
 export function normalizeError(error: unknown): ApiError {
-  // Axios error with a server response
   if (axios.isAxiosError(error)) {
     const body = error.response?.data as ApiErrorBody | undefined;
-
     return {
       message: body?.message || error.message || 'Something went wrong',
       code: body?.code || 'UNKNOWN_ERROR',
@@ -172,7 +177,6 @@ export function normalizeError(error: unknown): ApiError {
     };
   }
 
-  // Network error or something entirely unexpected
   if (error instanceof Error) {
     return {
       message: error.message,
@@ -189,7 +193,7 @@ export function normalizeError(error: unknown): ApiError {
 }
 
 // ---------------------------------------------------------------------------
-// Convenience methods (typed wrappers)
+// Convenience methods
 // ---------------------------------------------------------------------------
 
 export const api = {

@@ -23,3 +23,4 @@ export * from './MessageReactions';
 export * from './MessageStatusIcon';
 export * from './MessageReadInfo';
 export * from './ReadByPopover';
+export * from './DeliveryBridge';
